@@ -35,6 +35,9 @@ define(
             style: 'direction: ltr; text-align: left'
           },
           onSubmit: function (e) {
+            // Pass the original submit event object so it can be accessed within the handler.
+            editor.fire('CodePluginDialogSubmitted', e);
+
             // We get a lovely "Wrong document" error in IE 11 if we
             // don't move the focus to the editor before creating an undo
             // transation since it tries to make a bookmark for the current selection
@@ -52,6 +55,8 @@ define(
         // Gecko has a major performance issue with textarea
         // contents so we need to set it when all reflows are done
         win.find('#code').value(editor.getContent({ source_view: true }));
+
+        editor.fire('CodePluginDialogLoaded');
       }
 
       editor.addCommand("mceCodeEditor", showDialog);
