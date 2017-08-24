@@ -29,64 +29,127 @@ define(
   function (Env, JSON, Tools, XHR, Throbber, Uploader, Utils, Math, RegExp, document) {
 
     return function (editor) {
-      function createImageList(callback) {
-        var imageList = editor.settings.image_list;
+      /*
+       * Retrieves the HTML markup for the internal file chooser and calls the provided
+       * callback function.
+       *
+       * The callback is necessary to create a synchronous method call which ensures
+       * the AJAX completes before the image dialog is shown.
+       *
+       * @param callback method to call on AJAX success/error.
+       * @return function
+       */
+      function getTypeAheadFieldHtml(callback) {
+        var cascadeImageChooserUrl = 'CONTEXT_PATH/imagepopup.act?src=<IMG_SRC>&currentSiteId=' + Utils.getGlobalCascadeVariable().Variables.get('currentSiteId');
+        var selection = editor.selection, dom = editor.dom, imgElm, figureElm, src;
 
-        if (typeof imageList == "string") {
-          XHR.send({
-            url: imageList,
-            success: function (text) {
-              callback(JSON.parse(text));
-            }
-          });
-        } else if (typeof imageList == "function") {
-          imageList(callback);
-        } else {
-          callback(imageList);
+        imgElm = selection.getNode();
+
+        // If the image is surrounded by a figure element, we need to get the image element within.
+        figureElm = dom.getParent(imgElm, 'figure.image');
+        if (figureElm) {
+          imgElm = dom.select('img', figureElm)[0];
         }
+
+        src = imgElm ? dom.getAttrib(imgElm, 'src') : '';
+
+        // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
+        if (!Utils.isInternalUrl(src)) {
+          src = '';
+        }
+
+        XHR.send({
+          url: cascadeImageChooserUrl.replace('<IMG_SRC>', encodeURIComponent(src)),
+          error: function () {
+            // In the event of an error, just return an empty string.
+            callback('');
+          },
+          success: function (text) {
+            callback(text);
+          }
+        });
       }
 
-      function showDialog(imageList) {
+      /**
+       * Retrieves Title or Display Name for the provided image path and passes
+       * it to the provided callback.
+       *
+       * @param {string} path - The path of the image
+       * @param {function} callback - The callback to execute
+       *
+       */
+      function getImageTitleOrDisplayName(path, callback) {
+        XHR.send({
+          url: 'CONTEXT_PATH/ajax/getAssetInfo.act?type=file&path=' + path,
+          error: function () {
+            // In the event of an error, just return an empty string.
+            callback('');
+          },
+          success: function (data) {
+            callback(data.dom ? data.dom.tOrDN : '');
+          }
+        });
+      }
+
+      function showDialog(typeAheadFieldHtml) {
         var win, data = {}, imgElm, figureElm, dom = editor.dom, settings = editor.settings;
-        var width, height, imageListCtrl, classListCtrl, imageDimensions = settings.image_dimensions !== false;
+        var width, height, classListCtrl, imageDimensions = settings.image_dimensions !== false;
+        var chooserElm, srcCtrl;
+        var isAltTextManuallyUpdated = false;
 
+        /**
+         * Toggles the disabled state of the alt control and description based on the state of the decorative
+         * image checkbox.
+         *
+         * @param {boolean} focusDecorativeField - Whether or not the decorative field should be focused.
+         */
+        function toggleAltState(focusDecorativeField) {
+          var altCtrl = win.find("#altContainer")[0];
+          var altCtrlParent = altCtrl._parent;
+          var altHelpTextParent = win.find("#altHelpText")[0]._parent;
+          var decorativeCtrl = win.find("#decorative")[0];
+          var isDecorative = decorativeCtrl.checked();
 
-        function onFileInput() {
-          var throbber = new Throbber(win.getEl());
-          var file = this.value();
+          focusDecorativeField = focusDecorativeField !== false;
 
-          var uploader = new Uploader({
-            url: settings.images_upload_url,
-            basePath: settings.images_upload_base_path,
-            credentials: settings.images_upload_credentials,
-            handler: settings.images_upload_handler
-          });
+          altCtrlParent[isDecorative ? 'hide' : 'show']();
+          altHelpTextParent[isDecorative ? 'hide' : 'show']();
 
-          // we do not need to add this to editors blobCache, so we fake bare minimum
-          var blobInfo = editor.editorUpload.blobCache.create({
-            blob: file,
-            name: file.name ? file.name.replace(/\.[^\.]+$/, '') : null, // strip extension
-            base64: 'data:image/fake;base64,=' // without this create() will throw exception
-          });
+          if (focusDecorativeField) {
+            decorativeCtrl.focus();
+          }
+        }
 
-          var finalize = function () {
-            throbber.hide();
-            URL.revokeObjectURL(blobInfo.blobUri()); // in theory we could fake blobUri too, but until it's legitimate, we have too revoke it manually
-          };
+        /**
+         * Toggles the visibility of the internal and external link controls
+         * based on which checkbox is being clicked.
+         */
+        function toggleLinkFields() {
+          var isTargetChecked = this.checked();
+          var otherCheckbox = win.find('#' + (this.name() === 'source_type_internal' ? 'source_type_external' : 'source_type_internal'));
 
-          throbber.show();
+          // If clicking the same checkbox as the current source type, keep it checked and return.
+          if (this.name() === 'source_type_' + data.source_type) {
+            this.checked(true);
+            return;
+          }
 
-          return uploader.upload(blobInfo).then(function (url) {
-            var src = win.find('#src');
-            src.value(url);
-            win.find('tabpanel')[0].activateTab(0); // switch to General tab
-            src.fire('change'); // this will invoke onSrcChange (and any other handlers, if any).
-            finalize();
-            return url;
-          }, function (err) {
-            editor.windowManager.alert(err);
-            finalize();
-          });
+          // Toggle the checked state of the two checkboxes.
+          this.checked(isTargetChecked);
+          otherCheckbox.checked(!isTargetChecked);
+
+          // Toggle the visibility of the two fields and update the source type value.
+          if (this.name() === 'source_type_internal' && this.checked()) {
+            win.find('#internalSrc').show();
+            win.find('#externalSrc').hide();
+            data.source_type = 'internal';
+          } else {
+            win.find('#internalSrc').hide();
+            win.find('#externalSrc').show();
+            data.source_type = 'external';
+          }
+
+          onSrcChange();
         }
 
         function isTextBlock(node) {
@@ -216,12 +279,39 @@ define(
 
           data = Tools.extend(data, win.toJSON());
 
+          if (data.source_type_internal) {
+            var internalSrcValue = Utils.getChosenFromAssetChooser(editor).path;
+            var crossSite = internalSrcValue.match(/(.*):([^\/].*)/);
+
+            if (internalSrcValue === '' || internalSrcValue === '/') {
+              editor.windowManager.alert("Please choose an image asset to insert.");
+              return false;
+            }
+
+            // If the source is cross-site, append the site:// prefix.
+            data.src = crossSite ? 'site://' + crossSite[1] + '/' + crossSite[2] : internalSrcValue;
+
+            // Add render file path to the source and encode the path.
+            data.src = Utils.internalPathToRenderFileURL(data.src);
+          } else {
+            data.src = data.externalSrc;
+
+            if (data.src === '' || data.src === 'http://') {
+              editor.windowManager.alert("Please fill in the image URL.");
+              return false;
+            }
+          }
+
           if (!data.alt) {
             data.alt = '';
           }
 
           if (!data.title) {
             data.title = '';
+          }
+
+          if (!data.decorative) {
+            data.decorative = false;
           }
 
           if (data.width === '') {
@@ -234,6 +324,13 @@ define(
 
           if (!data.style) {
             data.style = null;
+          }
+
+          if (!data.decorative && !data.alt.length) {
+            editor.windowManager.alert("Please provide an Image Description to ensure that your content is accessible. If this is a decorative image, please mark it as decorative.");
+            return false;
+          } else if (data.decorative) {
+            data.alt = '';
           }
 
           // Setup new data excluding style properties
@@ -272,6 +369,11 @@ define(
               dom.setAttrib(imgElm, 'id', null);
             } else {
               dom.setAttribs(imgElm, data);
+
+              // setAttribs will remove the empty alt attribute, so we need to re-add it.
+              if (!data.alt.length) {
+                imgElm.setAttribute('alt', '');
+              }
             }
 
             editor.editorUpload.uploadImagesAuto();
@@ -311,42 +413,38 @@ define(
         }
 
         function onSrcChange(e) {
-          var srcURL, prependURL, absoluteURLPattern, meta = e.meta || {};
+          // The value differs if the acting element is a TinyMCE control or a DOM Element.
+          // A DOM Element is an internal path and needs to be converted to a render URL.
+          //var value = e && e.control ? this.value() : UrlUtil.internalPathToRenderFileURL(this.value);
+          var path = Utils.getChosenFromAssetChooser(editor).path;
+          var value = data.source_type === 'external' ? win.find('#externalSrc')[0].value() : Utils.internalPathToRenderFileURL(path);
 
-          if (imageListCtrl) {
-            imageListCtrl.value(editor.convertURL(this.value(), 'src'));
-          }
-
-          Tools.each(meta, function (value, key) {
-            win.find('#' + key).value(value);
-          });
-
-          if (!meta.width && !meta.height) {
-            srcURL = editor.convertURL(this.value(), 'src');
-
-            // Pattern test the src url and make sure we haven't already prepended the url
-            prependURL = editor.settings.image_prepend_url;
-            absoluteURLPattern = new RegExp('^(?:[a-z]+:)?//', 'i');
-            if (prependURL && !absoluteURLPattern.test(srcURL) && srcURL.substring(0, prependURL.length) !== prependURL) {
-              srcURL = prependURL + srcURL;
-            }
-
-            this.value(srcURL);
-
-            Utils.getImageSize(editor.documentBaseURI.toAbsolute(this.value()), function (data) {
-              if (data.width && data.height && imageDimensions) {
+          Utils.getImageSize(value, function (data) {
+            if (imageDimensions) {
+              if (data.width && data.height) {
                 width = data.width;
                 height = data.height;
+              } else {
+                width = '';
+                height = '';
+              }
 
-                win.find('#width').value(width);
-                win.find('#height').value(height);
+              win.find('#width').value(width);
+              win.find('#height').value(height);
+            }
+          });
+
+          if (!isAltTextManuallyUpdated && data.source_type === 'internal') {
+            getImageTitleOrDisplayName(path, function (tOrDN) {
+              if (tOrDN) {
+                win.find('#alt').value(tOrDN);
               }
             });
           }
         }
 
-        function onBeforeCall(e) {
-          e.meta = win.toJSON();
+        function altTextManuallyUpdated() {
+          isAltTextManuallyUpdated = true;
         }
 
         imgElm = editor.selection.getNode();
@@ -375,41 +473,30 @@ define(
             height: height,
             caption: !!figureElm
           };
-        }
 
-        if (imageList) {
-          imageListCtrl = {
-            type: 'listbox',
-            label: 'Image list',
-            values: Utils.buildListItems(
-              imageList,
-              function (item) {
-                item.value = editor.convertURL(item.value || item.url, 'src');
-              },
-              [{ text: 'None', value: '' }]
-            ),
-            value: data.src && editor.convertURL(data.src, 'src'),
-            onselect: function (e) {
-              var altCtrl = win.find('#alt');
-
-              if (!altCtrl.value() || (e.lastControl && altCtrl.value() == e.lastControl.text())) {
-                altCtrl.value(e.control.text());
-              }
-
-              win.find('#src').value(e.control.value()).fire('change');
-            },
-            onPostRender: function () {
-              /*eslint consistent-this: 0*/
-              imageListCtrl = this;
-            }
-          };
+          data.decorative = !data.alt.length;
         }
 
         if (editor.settings.image_class_list) {
+          // Add a 'None' option to the beginning if it is not already present.
+          if (typeof editor.settings.image_class_list[0] !== 'object') {
+            // Using an object as opposed to a string so we can use an empty value.
+            editor.settings.image_class_list.unshift({
+              text: 'None',
+              value: ''
+            });
+          }
+
+          // If the images's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
+          if (data['class'] && editor.settings.image_class_list.indexOf(data['class']) === -1) {
+            editor.settings.image_class_list.push(data['class']);
+          }
+
           classListCtrl = {
             name: 'class',
             type: 'listbox',
             label: 'Class',
+            style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
             values: Utils.buildListItems(
               editor.settings.image_class_list,
               function (item) {
@@ -423,22 +510,124 @@ define(
           };
         }
 
+        data.source_type = imgElm === null || Utils.isInternalUrl(data.src) ? 'internal' : 'external';
+
         // General settings shared between simple and advanced dialogs
-        var generalFormItems = [
-          {
-            name: 'src',
-            type: 'filepicker',
-            filetype: 'image',
-            label: 'Source',
-            autofocus: true,
-            onchange: onSrcChange,
-            onbeforecall: onBeforeCall
-          },
-          imageListCtrl
-        ];
+        var generalFormItems = [];
+
+        // Initialize the external source control
+        srcCtrl = {
+          name: 'externalSrc',
+          type: 'textbox',
+          size: 40,
+          label: 'Image',
+          value: data.source_type === 'external' ? data.src : 'http://',
+          onchange: onSrcChange
+        };
+
+        // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate source controls.
+        if (typeAheadFieldHtml.length) {
+          generalFormItems.push({
+            type: 'container',
+            label: 'Image Source',
+            layout: 'flex',
+            direction: 'row',
+            align: 'center',
+            spacing: 5,
+            items: [
+              {
+                name: 'source_type_internal',
+                type: 'checkbox',
+                checked: data.source_type === 'internal',
+                onclick: toggleLinkFields,
+                text: 'Internal'
+              },
+              {
+                name: 'source_type_external',
+                type: 'checkbox',
+                checked: data.source_type === 'external',
+                onclick: toggleLinkFields,
+                text: 'External'
+              }
+            ]
+          });
+
+          // Set the default visibility of the external source control.
+          srcCtrl.hidden = data.source_type !== 'external';
+
+          // Turn the control into a container, with the original added as one of the items.
+          srcCtrl = {
+            type: 'container',
+            name: 'sourceContainer',
+            label: 'Image',
+            minHeight: 55,
+            items: [
+              srcCtrl,
+              {
+                name: 'internalSrc',
+                type: 'container',
+                hidden: data.source_type !== 'internal',
+                html: typeAheadFieldHtml
+              }
+            ]
+          };
+        }
+
+        generalFormItems.push(srcCtrl);
 
         if (editor.settings.image_description !== false) {
-          generalFormItems.push({ name: 'alt', type: 'textbox', label: 'Image description' });
+          generalFormItems.push({
+            type: 'container',
+            label: 'Decorative',
+            layout: 'flex',
+            direction: 'column',
+            align: 'left',
+            spacing: 5,
+            items: [
+              {
+                name: 'decorative',
+                type: 'checkbox',
+                checked: data.decorative,
+                onclick: toggleAltState,
+                text: 'This is a decorative image, no description needed.'
+              }
+            ]
+          });
+
+          generalFormItems.push({
+            type: 'container',
+            label: 'Image description',
+            name: 'altContainer',
+            layout: 'flex',
+            direction: 'column',
+            align: 'left',
+            spacing: 5,
+            items: [
+              {
+                name: 'alt',
+                type: 'textbox',
+                size: 25,
+                onchange: altTextManuallyUpdated
+              }
+            ]
+          });
+
+          generalFormItems.push({
+            type: 'container',
+            label: '',
+            layout: 'flex',
+            direction: 'column',
+            align: 'center',
+            spacing: 5,
+            items: [
+              {
+                name: 'altHelpText',
+                type: 'label',
+                text: 'Image\'s title, display name or custom text',
+                classes: 'image-decoration-help-block'
+              }
+            ]
+          });
         }
 
         if (editor.settings.image_title) {
@@ -464,11 +653,18 @@ define(
 
         generalFormItems.push(classListCtrl);
 
-        if (editor.settings.image_caption && Env.ceFalse) {
-          generalFormItems.push({ name: 'caption', type: 'checkbox', label: 'Caption' });
-        }
-
         if (editor.settings.image_advtab || editor.settings.images_upload_url) {
+          var advTabItems = [];
+
+          if (editor.settings.image_caption && Env.ceFalse) {
+            advTabItems.push({
+              name: 'caption',
+              type: 'checkbox',
+              label: 'Figure/Caption',
+              text: 'Use figure and figcaption for this image'
+            });
+          }
+
           var body = [
             {
               title: 'General',
@@ -493,80 +689,38 @@ define(
               data.style = editor.dom.serializeStyle(editor.dom.parseStyle(editor.dom.getAttrib(imgElm, 'style')));
             }
 
+            advTabItems.push({
+              label: 'Style',
+              name: 'style',
+              type: 'textbox',
+              onchange: updateVSpaceHSpaceBorder
+            });
+
+            advTabItems.push({
+              type: 'form',
+              layout: 'grid',
+              packV: 'start',
+              columns: 2,
+              padding: 0,
+              alignH: ['left', 'right'],
+              defaults: {
+                type: 'textbox',
+                maxWidth: 50,
+                onchange: updateStyle
+              },
+              items: [
+                { label: 'Vertical space', name: 'vspace' },
+                { label: 'Horizontal space', name: 'hspace' },
+                { label: 'Border', name: 'border' }
+              ]
+            });
+
             body.push({
               title: 'Advanced',
               type: 'form',
               pack: 'start',
-              items: [
-                {
-                  label: 'Style',
-                  name: 'style',
-                  type: 'textbox',
-                  onchange: updateVSpaceHSpaceBorder
-                },
-                {
-                  type: 'form',
-                  layout: 'grid',
-                  packV: 'start',
-                  columns: 2,
-                  padding: 0,
-                  alignH: ['left', 'right'],
-                  defaults: {
-                    type: 'textbox',
-                    maxWidth: 50,
-                    onchange: updateStyle
-                  },
-                  items: [
-                    { label: 'Vertical space', name: 'vspace' },
-                    { label: 'Horizontal space', name: 'hspace' },
-                    { label: 'Border', name: 'border' }
-                  ]
-                }
-              ]
+              items: advTabItems
             });
-          }
-
-          if (editor.settings.images_upload_url) {
-            var acceptExts = '.jpg,.jpeg,.png,.gif';
-
-            var uploadTab = {
-              title: 'Upload',
-              type: 'form',
-              layout: 'flex',
-              direction: 'column',
-              align: 'stretch',
-              padding: '20 20 20 20',
-              items: [
-                {
-                  type: 'container',
-                  layout: 'flex',
-                  direction: 'column',
-                  align: 'center',
-                  spacing: 10,
-                  items: [
-                    {
-                      text: "Browse for an image",
-                      type: 'browsebutton',
-                      accept: acceptExts,
-                      onchange: onFileInput
-                    },
-                    {
-                      text: 'OR',
-                      type: 'label'
-                    }
-                  ]
-                },
-                {
-                  text: "Drop an image here",
-                  type: 'dropzone',
-                  accept: acceptExts,
-                  height: 100,
-                  onchange: onFileInput
-                }
-              ]
-            };
-
-            body.push(uploadTab);
           }
 
           // Advanced dialog shows general+advanced tabs
@@ -586,10 +740,18 @@ define(
             onSubmit: onSubmitForm
           });
         }
+
+        toggleAltState(false);
+
+        chooserElm = Utils.getInternalLinkChooser();
+        Utils.setAssetChooser(chooserElm.assetChooser().data('cs.chooser'), editor);
+
+        // Call srcChange on chooser clear and submission.
+        chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', onSrcChange);
       }
 
       function open() {
-        createImageList(showDialog);
+        getTypeAheadFieldHtml(showDialog);
       }
 
       return {

@@ -20,7 +20,7 @@ define(
   function (Delay, Tools, XHR, Utils, Settings) {
     var attachState = {};
 
-    /*
+    /**
      * Retrieves the HTML markup for the internal link chooser and calls the provided
      * callback function.
      *
@@ -362,6 +362,7 @@ define(
           name: 'class',
           type: 'listbox',
           label: 'Class',
+          style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
           values: buildListItems(
             Settings.getLinkClassList(editor.settings),
             function (item) {

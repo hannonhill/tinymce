@@ -52,24 +52,43 @@ define(
 
 
     var buildListItems = function (inputList, itemCallback, startItems) {
-      function appendItems(values, output) {
+      var truncateListItemText = function (str, n) {
+        return str.length > n ? str.substr(0, n - 1) + '...' : str;
+      };
+
+      var appendItems = function (values, output) {
+        var menuItem;
         output = output || [];
 
         Tools.each(values, function (item) {
-          var menuItem = { text: item.text || item.title };
+          if (typeof item === 'string') {
+            item = {
+              text: item,
+              value: item
+            };
+          }
+
+          menuItem = {
+            text: item.text || item.title
+          };
+
+          menuItem.text = truncateListItemText(menuItem.text, 50);
 
           if (item.menu) {
             menuItem.menu = appendItems(item.menu);
           } else {
             menuItem.value = item.value;
-            itemCallback(menuItem);
+
+            if (itemCallback) {
+              itemCallback(menuItem);
+            }
           }
 
           output.push(menuItem);
         });
 
         return output;
-      }
+      };
 
       return appendItems(inputList, startItems || []);
     };
@@ -123,12 +142,109 @@ define(
       return css;
     };
 
+    /**
+     * Gets the AssetChooser property from the provided editor.
+     *
+     * @param {object} editor - The context editor
+     * @return {object}
+     */
+    var getAssetChooser = function (editor) {
+      return editor.ImageAssetChooser;
+    };
+
+
+    /**
+     * Gets the chosen asset property from the provided editor's AssetChooser.
+     *
+     * @param {object} editor - The context editor
+     * @return {object}
+     */
+    var getChosenFromAssetChooser = function (editor) {
+      return getAssetChooser(editor).getAssetFromChosen();
+    };
+
+
+    /**
+     * Adds the provided AssetChooser property to the provided editor.
+     *
+     * @param {object} assetChooser - The AssetChooser to set
+     * @param {object} editor - The context editor
+     * @return {object}
+     */
+    var setAssetChooser = function (assetChooser, editor) {
+      editor.ImageAssetChooser = assetChooser;
+    };
+
+    /**
+     * Helper method that returns the global Cascade variable.
+     *
+     * @return {object}
+     */
+     /* global Cascade */
+    var getGlobalCascadeVariable = function () {
+      return Cascade;
+    };
+
+    /**
+     * Helper method that returns the chooser field itself.
+     *
+     * @return {jQuery}
+     */
+     /* global $ */
+    var getInternalLinkChooser = function () {
+      return $(document.getElementById('chooser-imageId'));
+    };
+
+
+    /**
+     * Helper method that returns the hidden input containing the internally
+     * chosen asset's path.
+     *
+     * @return {DOMElement}
+     */
+    var getInternalLinkChooserPathFieldElement = function () {
+      return document.getElementById('imagePath');
+    };
+
+    /**
+     * Turns an internal cache path into a render file path.
+     *
+     * Example: "/path/to/image.jpg" => "/render/file.act?path=/path/to/image.jpg"
+     *
+     * @param {string} path Path to convert to a render URL
+     * @return {string}
+     */
+    var internalPathToRenderFileURL = function (path) {
+      return path ? 'CONTEXT_PATH/render/file.act?path=' + encodeURI(path) : '';
+    };
+
+    /**
+     * Helper method that determines if a URL is internal (ie Cascade trackable) or external.
+     * A URL is internal if one of the following conditions is true:
+     * - starts with a leading slash (/)
+     * - starts with the site:// prefix
+     *
+     * @param {string} url URL to analyze
+     * @return {boolean}
+     */
+    var isInternalUrl = function (url) {
+      return url.match(/^(?:site:\/\/|\/)\w/) !== null;
+    };
+
     return {
       getImageSize: getImageSize,
       buildListItems: buildListItems,
       removePixelSuffix: removePixelSuffix,
       addPixelSuffix: addPixelSuffix,
-      mergeMargins: mergeMargins
+      mergeMargins: mergeMargins,
+      getAssetChooser: getAssetChooser,
+      getChosenFromAssetChooser: getChosenFromAssetChooser,
+      setAssetChooser: setAssetChooser,
+      getGlobalCascadeVariable: getGlobalCascadeVariable,
+      getInternalLinkChooser: getInternalLinkChooser,
+      getInternalLinkChooserPathFieldElement: getInternalLinkChooserPathFieldElement,
+      internalPathToRenderFileURL: internalPathToRenderFileURL,
+      isInternalUrl: isInternalUrl
     };
   }
 );
