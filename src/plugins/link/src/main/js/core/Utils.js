@@ -182,7 +182,7 @@ define(
     };
 
 
-    /*
+    /**
      * Removes hash (#) symbols from given anchor text.
      *
      * @param {string} str anchor text to clean
@@ -193,7 +193,7 @@ define(
     };
 
 
-    /*
+    /**
      * Gets the AssetChooser property from the provided editor.
      *
      * @param {object} editor - The context editor
@@ -204,7 +204,7 @@ define(
     };
 
 
-    /*
+    /**
      * Gets the chosen asset property from the provided editor's AssetChooser.
      *
      * @param {object} editor - The context editor
@@ -215,7 +215,7 @@ define(
     };
 
 
-    /*
+    /**
      * Adds the provided AssetChooser property to the provided editor.
      *
      * @param {object} assetChooser - The AssetChooser to set
@@ -227,7 +227,7 @@ define(
     };
 
 
-    /*
+    /**
      * Helper method that returns the global Cascade variable.
      *
      * @return {object}
@@ -238,7 +238,7 @@ define(
     };
 
 
-    /*
+    /**
      * Helper method that returns the chooser field itself.
      *
      * @return {jQuery}
@@ -249,7 +249,7 @@ define(
     };
 
 
-    /*
+    /**
      * Helper method that returns the hidden input containing the internally
      * chosen asset's path.
      *
@@ -260,7 +260,7 @@ define(
     };
 
 
-    /*
+    /**
      * Helper method that determines if a URL is internal (ie Cascade trackable) or external.
      * A URL is internal if one of the following conditions is true:
      * - starts with a leading slash (/)
@@ -274,7 +274,7 @@ define(
     };
 
 
-    /*
+    /**
      * Helper method that splits a URL by the first occurring hash symbol, and removes
      * any additional hash symbols to be safe.
      *
