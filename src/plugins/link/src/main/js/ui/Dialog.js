@@ -20,31 +20,63 @@ define(
   function (Delay, Tools, XHR, Utils, Settings) {
     var attachState = {};
 
-    var createLinkList = function (editor, callback) {
-      var linkList = Settings.getLinkList(editor.settings);
+    /*
+     * Retrieves the HTML markup for the internal link chooser and calls the provided
+     * callback function.
+     *
+     * The callback is necessary to create a synchronous method call which ensures
+     * the AJAX completes before the link dialog is shown.
+     *
+     * @param callback method to call on AJAX success/error.
+     * @return function
+     */
+    var getInternalLinkChooserFieldHtml = function (editor, callback) {
+      var cascadeLinkChooserUrl = 'CONTEXT_PATH/linkpopup.act?href=<LINK_HREF>&currentSiteId=' + Utils.getGlobalCascadeVariable().Variables.get('currentSiteId');
+      var selection = editor.selection;
+      var dom = editor.dom;
+      var selectedElm = selection.getNode();
+      var anchorElm = dom.getParent(selectedElm, 'a[href]');
+      var href = anchorElm ? dom.getAttrib(anchorElm, 'href') : '';
 
-      if (typeof linkList == "string") {
-        XHR.send({
-          url: linkList,
-          success: function (text) {
-            callback(editor, JSON.parse(text));
-          }
-        });
-      } else if (typeof linkList == "function") {
-        linkList(function (list) {
-          callback(editor, list);
-        });
-      } else {
-        callback(editor, linkList);
+      // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
+      if (!Utils.isInternalUrl(href)) {
+        href = '';
       }
+
+      XHR.send({
+        url: cascadeLinkChooserUrl.replace('<LINK_HREF>', encodeURIComponent(href)),
+        error: function () {
+          // In the event of an error, just return an empty string.
+          callback(editor, '');
+        },
+        success: function (text) {
+          callback(editor, text);
+        }
+      });
     };
 
     var buildListItems = function (inputList, itemCallback, startItems) {
+      var truncateListItemText = function (str, n) {
+        return str.length > n ? str.substr(0, n - 1) + '...' : str;
+      };
+
       var appendItems = function (values, output) {
+        var menuItem;
         output = output || [];
 
         Tools.each(values, function (item) {
-          var menuItem = { text: item.text || item.title };
+          if (typeof item === 'string') {
+            item = {
+              text: item,
+              value: item
+            };
+          }
+
+          menuItem = {
+            text: item.text || item.title
+          };
+
+          menuItem.text = truncateListItemText(menuItem.text, 50);
 
           if (item.menu) {
             menuItem.menu = appendItems(item.menu);
@@ -77,88 +109,88 @@ define(
       });
     };
 
-    var showDialog = function (editor, linkList) {
+    var showDialog = function (editor, typeAheadFieldHtml) {
       var data = {}, selection = editor.selection, dom = editor.dom, anchorElm, initialText;
-      var win, onlyText, textListCtrl, linkListCtrl, relListCtrl, targetListCtrl, classListCtrl, linkTitleCtrl, value;
+      var win, onlyText, textListCtrl, relListCtrl, targetListCtrl, classListCtrl, linkTitleCtrl, value;
+      var anchorCtrl, chooserElm, hrefCtrl, sourceTypeCtrl;
 
-      var linkListChangeHandler = function (e) {
-        var textCtrl = win.find('#text');
+      /*
+       * Toggles the visibility of the internal and external link controls
+       * based on which checkbox is being clicked.
+       */
+      var toggleLinkFields = function () {
+        var isTargetChecked = this.checked();
+        var otherCheckbox = win.find('#' + (this.name() === 'source_type_internal' ? 'source_type_external' : 'source_type_internal'));
 
-        if (!textCtrl.value() || (e.lastControl && textCtrl.value() == e.lastControl.text())) {
-          textCtrl.value(e.control.text());
+        // If clicking the same checkbox as the current source type, keep it checked and return.
+        if (this.name() === 'source_type_' + data.source_type) {
+          this.checked(true);
+          return;
         }
 
-        win.find('#href').value(e.control.value());
-      };
+        // Toggle the checked state of the two checkboxes.
+        this.checked(isTargetChecked);
+        otherCheckbox.checked(!isTargetChecked);
 
-      var buildAnchorListControl = function (url) {
-        var anchorList = [];
-
-        Tools.each(editor.dom.select('a:not([href])'), function (anchor) {
-          var id = anchor.name || anchor.id;
-
-          if (id) {
-            anchorList.push({
-              text: id,
-              value: '#' + id,
-              selected: url.indexOf('#' + id) != -1
-            });
-          }
-        });
-
-        if (anchorList.length) {
-          anchorList.unshift({ text: 'None', value: '' });
-
-          return {
-            name: 'anchor',
-            type: 'listbox',
-            label: 'Anchors',
-            values: anchorList,
-            onselect: linkListChangeHandler
-          };
+        // Toggle the visibility of the two fields and update the source type value.
+        if (this.name() === 'source_type_internal' && this.checked()) {
+          win.find('#internalLink').show();
+          win.find('#externalLink').hide();
+          data.source_type = 'internal';
+        } else {
+          win.find('#internalLink').hide();
+          win.find('#externalLink').show();
+          data.source_type = 'external';
         }
+
+        updateText();
       };
 
+      /*
+       * For new links (ie no text was selected prior to clicking the link control), automatically copies the
+       * internal or external link and anchor value over to the link text field.
+       */
       var updateText = function () {
         if (!initialText && onlyText && !data.text) {
-          this.parent().parent().find('#text')[0].value(this.value());
-        }
-      };
+          var href = data.source_type === 'internal' ? Utils.getChosenFromAssetChooser(editor).path : win.find('#externalLink').value();
+          var anchor = Utils.cleanAnchorText(win.find('#anchor').value());
 
-      var urlChange = function (e) {
-        var meta = e.meta || {};
-
-        if (linkListCtrl) {
-          linkListCtrl.value(editor.convertURL(this.value(), 'href'));
-        }
-
-        Tools.each(e.meta, function (value, key) {
-          var inp = win.find('#' + key);
-
-          if (key === 'text') {
-            if (initialText.length === 0) {
-              inp.value(value);
-              data.text = value;
-            }
-          } else {
-            inp.value(value);
+          if (anchor !== '') {
+            href += '#' + anchor;
           }
-        });
 
-        if (meta.attach) {
-          attachState = {
-            href: this.value(),
-            attach: meta.attach
-          };
-        }
-
-        if (!meta.text) {
-          updateText.call(this);
+          this.parent().parent().find('#text')[0].value(href);
         }
       };
 
-      var onBeforeCall = function (e) {
-        e.meta = win.toJSON();
+      /*
+       * If the context is a TinyMCE control, automatically: copies anchor text over to
+       * the anchor control if the control being changed is the external link control, or
+       * automatically cleans up the value of the anchor control (ie removes hash signs)
+       * if the control being changed is the anchor control.
+       *
+       * Attempts to update the link text field for new links without text.
+       */
+      var urlChange = function (e) {
+        // Only run the following if the context element is a TinyMCE control.
+        if (e.control && this.value()) {
+          var splitUrl = Utils.splitUrlByHash(this.value());
+          if (this.name() === 'externalLink') {
+            // Update the href value.
+            this.value(splitUrl[0]);
+
+            // If a new anchor is present replace the existing anchor value.
+            if (splitUrl[1]) {
+              win.find('#anchor').value(splitUrl[1]);
+            }
+          } else if (this.name() === 'anchor') {
+            // Update the sanitized anchor value (ie removal of # symbols).
+            // Note: splitUrl will differ if a # symbol is present in the anchor value.
+            this.value(splitUrl[0] || splitUrl[1]);
+          }
+        }
+
+        updateText.call(this);
       };
 
       onlyText = Utils.isOnlyTextSelected(selection.getContent());
@@ -166,6 +198,28 @@ define(
 
       data.text = initialText = Utils.getAnchorText(editor.selection, anchorElm);
       data.href = anchorElm ? dom.getAttrib(anchorElm, 'href') : '';
+
+      if (data.href === '#') {
+        data.href = '';
+      } else {
+        var splitUrl = Utils.splitUrlByHash(data.href);
+
+        if (splitUrl.length > 1) {
+          data.anchor = splitUrl[1] || '';
+
+          // If there is an anchor, replace the current href with the string before the fragment.
+          if (data.anchor !== '') {
+            data.href = splitUrl[0];
+          }
+        } else if (data.href.startsWith('#')) {
+          // If the href starts with a #, splutUrl will contain a single value with the # removed.
+          data.anchor = splitUrl[0];
+          data.href = '';
+        }
+      }
+
+      // Determine the source type based on the link's href value, or default to internal if empty.
+      data.source_type = Utils.isInternalUrl(data.href) || data.href === '' ? 'internal' : 'external';
 
       if (anchorElm) {
         data.target = dom.getAttrib(anchorElm, 'target');
@@ -185,6 +239,75 @@ define(
         data.title = value;
       }
 
+      // Initialize the external link control
+      hrefCtrl = {
+        name: 'externalLink',
+        type: 'textbox',
+        size: 40,
+        label: 'Link',
+        value: data.source_type === 'external' ? data.href : 'http://',
+        onchange: urlChange,
+        onkeyup: updateText
+      };
+
+      // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate URL controls.
+      if (typeAheadFieldHtml) {
+        sourceTypeCtrl = {
+          type: 'container',
+          label: 'Link Source',
+          layout: 'flex',
+          direction: 'row',
+          align: 'center',
+          spacing: 5,
+          items: [
+            {
+              name: 'source_type_internal',
+              type: 'checkbox',
+              checked: data.source_type === 'internal',
+              onclick: toggleLinkFields, text: 'Internal'
+            },
+            {
+              name: 'source_type_external',
+              type: 'checkbox',
+              checked: data.source_type === 'external',
+              onclick: toggleLinkFields,
+              text: 'External'
+            }
+          ]
+        };
+
+        // Set the default visibility of the external URL control.
+        hrefCtrl.hidden = data.source_type !== 'external';
+
+        // Turn the control into a container, with the original added as one of the items.
+        hrefCtrl = {
+          type: 'container',
+          name: 'linkContainer',
+          label: 'Link',
+          minHeight: 55,
+          items: [
+            hrefCtrl,
+            {
+              name: 'internalLink',
+              type: 'container',
+              hidden: data.source_type !== 'internal',
+              html: typeAheadFieldHtml
+            }
+          ]
+        };
+      }
+
+      if (Settings.shouldShowLinkAnchor(editor.settings)) {
+        anchorCtrl = {
+          name: 'anchor',
+          type: 'textbox',
+          label: 'Anchor',
+          size: 40,
+          onchange: urlChange,
+          onkeyup: updateText
+        };
+      }
+
       if (onlyText) {
         textListCtrl = {
           name: 'text',
@@ -193,26 +316,6 @@ define(
           label: 'Text to display',
           onchange: function () {
             data.text = this.value();
-          }
-        };
-      }
-
-      if (linkList) {
-        linkListCtrl = {
-          type: 'listbox',
-          label: 'Link list',
-          values: buildListItems(
-            linkList,
-            function (item) {
-              item.value = editor.convertURL(item.value || item.url, 'href');
-            },
-            [{ text: 'None', value: '' }]
-          ),
-          onselect: linkListChangeHandler,
-          value: editor.convertURL(data.href, 'href'),
-          onPostRender: function () {
-            /*eslint consistent-this:0*/
-            linkListCtrl = this;
           }
         };
       }
@@ -250,6 +353,11 @@ define(
       }
 
       if (Settings.hasLinkClassList(editor.settings)) {
+        // If the link's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
+        if (data['class'] && Settings.getLinkClassList(editor.settings).indexOf(data['class']) === -1) {
+          Settings.getLinkClassList(editor.settings).push(data['class']);
+        }
+
         classListCtrl = {
           name: 'class',
           type: 'listbox',
@@ -280,21 +388,11 @@ define(
         title: 'Insert link',
         data: data,
         body: [
-          {
-            name: 'href',
-            type: 'filepicker',
-            filetype: 'file',
-            size: 40,
-            autofocus: true,
-            label: 'Url',
-            onchange: urlChange,
-            onkeyup: updateText,
-            onbeforecall: onBeforeCall
-          },
+          sourceTypeCtrl,
+          hrefCtrl,
+          anchorCtrl,
           textListCtrl,
           linkTitleCtrl,
-          buildAnchorListControl(data.href),
-          linkListCtrl,
           relListCtrl,
           targetListCtrl,
           classListCtrl
@@ -307,6 +405,35 @@ define(
           var resultData = Tools.extend({}, data, e.data);
           /*eslint dot-notation: 0*/
           var href = resultData.href;
+
+          if (resultData.source_type_internal) {
+            var internalLinkValue = Utils.getChosenFromAssetChooser(editor).path;
+            var crossSite = internalLinkValue.match(/(.*):([^\/].*)/);
+
+            /*
+             If the link is cross-site, append the site:// prefix. Otherwise,
+             make sure it starts with a leading / to denote internal.
+            */
+            if (crossSite) {
+              href = 'site://' + crossSite[1] + '/' + crossSite[2];
+            } else if (internalLinkValue) {
+              href = internalLinkValue.charAt(0) !== '/' ? '/' + internalLinkValue : internalLinkValue;
+            } else {
+              href = internalLinkValue;
+            }
+          } else {
+            href = resultData.externalLink;
+          }
+
+          // If there is a anchor, append it onto the end of the final href value.
+          if (resultData.anchor) {
+            href += "#" + Utils.cleanAnchorText(resultData.anchor);
+          }
+
+          // If the link is still empty, just default to a # sign.
+          if (href === '') {
+            href = '#';
+          }
 
           if (!href) {
             removeLink();
@@ -348,13 +475,23 @@ define(
             return;
           }
 
+          resultData.href = href;
           insertLink(resultData);
         }
+      });
+
+      chooserElm = Utils.getInternalLinkChooser();
+      Utils.setAssetChooser(chooserElm.assetChooser().data('cs.chooser'), editor);
+
+      // Call urlChange on chooser clear and submission.
+      chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', function () {
+        // Call the urlChange method with the context of the linkPath DOM Element.
+        urlChange.call(Utils.getInternalLinkChooserPathFieldElement(), {});
       });
     };
 
     var open = function (editor) {
-      createLinkList(editor, showDialog);
+      getInternalLinkChooserFieldHtml(editor, showDialog);
     };
 
     return {

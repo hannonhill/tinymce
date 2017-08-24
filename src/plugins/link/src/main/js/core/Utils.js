@@ -101,6 +101,11 @@ define(
             title: data.title ? data.title : null
           };
 
+          if (data.source_type === 'internal') {
+            linkAttrs['data-mce-asset-id'] = getChosenFromAssetChooser(editor).id;
+            linkAttrs['data-mce-asset-type'] = getChosenFromAssetChooser(editor).type;
+          }
+
           if (!Settings.hasRelList(editor.settings) && Settings.allowUnsafeLinkTarget(editor.settings) === false) {
             linkAttrs.rel = toggleTargetRules(linkAttrs.rel, linkAttrs.target == '_blank');
           }
@@ -176,6 +181,113 @@ define(
       }
     };
 
+
+    /*
+     * Removes hash (#) symbols from given anchor text.
+     *
+     * @param {string} str anchor text to clean
+     * @return {string}
+     */
+    var cleanAnchorText = function (str) {
+      return str.replace(/\#/g, '');
+    };
+
+
+    /*
+     * Gets the AssetChooser property from the provided editor.
+     *
+     * @param {object} editor - The context editor
+     * @return {object}
+     */
+    var getAssetChooser = function (editor) {
+      return editor.LinkAssetChooser;
+    };
+
+
+    /*
+     * Gets the chosen asset property from the provided editor's AssetChooser.
+     *
+     * @param {object} editor - The context editor
+     * @return {object}
+     */
+    var getChosenFromAssetChooser = function (editor) {
+      return getAssetChooser(editor).getAssetFromChosen();
+    };
+
+
+    /*
+     * Adds the provided AssetChooser property to the provided editor.
+     *
+     * @param {object} assetChooser - The AssetChooser to set
+     * @param {object} editor - The context editor
+     * @return {object}
+     */
+    var setAssetChooser = function (assetChooser, editor) {
+      editor.LinkAssetChooser = assetChooser;
+    };
+
+
+    /*
+     * Helper method that returns the global Cascade variable.
+     *
+     * @return {object}
+     */
+     /* global Cascade */
+    var getGlobalCascadeVariable = function () {
+      return Cascade;
+    };
+
+
+    /*
+     * Helper method that returns the chooser field itself.
+     *
+     * @return {jQuery}
+     */
+     /* global $ */
+    var getInternalLinkChooser = function () {
+      return $(document.getElementById('chooser-linkedAssetId'));
+    };
+
+
+    /*
+     * Helper method that returns the hidden input containing the internally
+     * chosen asset's path.
+     *
+     * @return {DOMElement}
+     */
+    var getInternalLinkChooserPathFieldElement = function () {
+      return document.getElementById('linkedAssetPath');
+    };
+
+
+    /*
+     * Helper method that determines if a URL is internal (ie Cascade trackable) or external.
+     * A URL is internal if one of the following conditions is true:
+     * - starts with a leading slash (/)
+     * - starts with the site:// prefix
+     *
+     * @param {string} url URL to analyze
+     * @return {boolean}
+     */
+    var isInternalUrl = function (url) {
+      return url.match(/^(?:site:\/\/|\/)\w/) !== null;
+    };
+
+
+    /*
+     * Helper method that splits a URL by the first occurring hash symbol, and removes
+     * any additional hash symbols to be safe.
+     *
+     * Note: If the URL is a single hash symbol, it will be retained.
+     *
+     * @param {string} url URL to split
+     * @return {string[]}
+     */
+    var splitUrlByHash = function (url) {
+      return url.match(/^#$|[^#]+/g) || [];
+    };
+
+
     return {
       link: link,
       unlink: unlink,
@@ -184,7 +296,16 @@ define(
       isOnlyTextSelected: isOnlyTextSelected,
       getAnchorElement: getAnchorElement,
       getAnchorText: getAnchorText,
-      toggleTargetRules: toggleTargetRules
+      toggleTargetRules: toggleTargetRules,
+      cleanAnchorText: cleanAnchorText,
+      getAssetChooser: getAssetChooser,
+      setAssetChooser: setAssetChooser,
+      getChosenFromAssetChooser: getChosenFromAssetChooser,
+      getGlobalCascadeVariable: getGlobalCascadeVariable,
+      getInternalLinkChooser: getInternalLinkChooser,
+      getInternalLinkChooserPathFieldElement: getInternalLinkChooserPathFieldElement,
+      isInternalUrl: isInternalUrl,
+      splitUrlByHash: splitUrlByHash
     };
   }
 );

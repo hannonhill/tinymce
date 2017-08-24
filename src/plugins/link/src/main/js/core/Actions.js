@@ -32,6 +32,18 @@ define(
       return href ? href : elm.getAttribute('href');
     };
 
+    /**
+     * Returns the ID and type for the given link by using internal data attributes.
+     *
+     * @param {DOMElement} elm the context link
+     * @returns {object}
+     */
+    var getAsset = function (elm) {
+      var id = elm.getAttribute('data-mce-asset-id');
+      var type = elm.getAttribute('data-mce-asset-type');
+      return id && type ? { id: id, type: type } : {};
+    };
+
     var isContextMenuVisible = function (editor) {
       var contextmenu = editor.plugins.contextmenu;
       return contextmenu ? contextmenu.isContextMenuVisible() : false;
@@ -42,12 +54,18 @@ define(
     };
 
     var gotoLink = function (editor, a) {
+      var ENTITY_OPEN_ACTION = 'CONTEXT_PATH/entity/open.act';
       if (a) {
         var href = getHref(a);
         if (/^#/.test(href)) {
           var targetEl = editor.$(href);
           if (targetEl.length) {
             editor.selection.scrollIntoView(targetEl[0], true);
+          }
+        } else if (Utils.isInternalUrl(href)) {
+          var asset = getAsset(a);
+          if (asset.id && asset.type) {
+            OpenUrl.open(ENTITY_OPEN_ACTION + '?id=' + asset.id + '&type=' + asset.type);
           }
         } else {
           OpenUrl.open(a.href);
