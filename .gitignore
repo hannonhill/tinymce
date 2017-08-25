@@ -36,6 +36,3 @@ mentions
 **/scratch
 **/lib
 **/dependency
-!cascadecms-dist/
-!cascadecms-dist/*
-!cascadecms-dist/**/*
