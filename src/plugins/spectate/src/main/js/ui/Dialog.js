@@ -145,16 +145,15 @@ define(
             values: formList,
             minWidth: '325',
             onPostRender: function () {
-              var selectedForm;
+              var self = this;
 
               Tools.each(formList, function (form) {
+                // Preselect a form if found and terminate the loop.
                 if (form.value === parseInt(data.spectateform, 10)) {
-                  selectedForm = form;
+                  self.value(form.value);
+                  return false;
                 }
               });
-
-              // Preselect a form if found.
-              this.value(selectedForm ? selectedForm.value : '');
             }
           }
         ],
