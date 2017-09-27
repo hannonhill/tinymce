@@ -13,17 +13,17 @@ define(
   [
   ],
   function () {
-    var setContent = function (editor, html) {
+    var setContent = function (editor, e) {
       // Pass the original submit event object so it can be accessed within the handler.
       editor.fire('CodePluginDialogSubmitted', e);
-      
+
       // We get a lovely "Wrong document" error in IE 11 if we
       // don't move the focus to the editor before creating an undo
       // transation since it tries to make a bookmark for the current selection
       editor.focus();
 
       editor.undoManager.transact(function () {
-        editor.setContent(html);
+        editor.setContent(e.data.code);
       });
 
       editor.selection.setCursorLocation();

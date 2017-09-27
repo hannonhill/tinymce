@@ -31,7 +31,7 @@ define(
           style: 'direction: ltr; text-align: left'
         },
         onSubmit: function (e) {
-          Content.setContent(editor, e.data.code);
+          Content.setContent(editor, e);
         }
       });
 
