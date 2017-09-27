@@ -11,11 +11,12 @@
 define(
   'tinymce.plugins.link.core.Utils',
   [
+    'global!document',
     'global!RegExp',
     'tinymce.core.util.Tools',
     'tinymce.plugins.link.api.Settings'
   ],
-  function (RegExp, Tools, Settings) {
+  function (document, RegExp, Tools, Settings) {
     var toggleTargetRules = function (rel, isUnsafe) {
       var rules = ['noopener'];
       var newRel = rel ? rel.split(/\s+/) : [];
