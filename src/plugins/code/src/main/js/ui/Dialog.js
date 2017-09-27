@@ -38,6 +38,8 @@ define(
       // Gecko has a major performance issue with textarea
       // contents so we need to set it when all reflows are done
       win.find('#code').value(Content.getContent(editor));
+
+      editor.fire('CodePluginDialogLoaded');
     };
 
     return {
