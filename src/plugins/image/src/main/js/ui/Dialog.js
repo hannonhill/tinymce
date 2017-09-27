@@ -15,19 +15,20 @@
 define(
   'tinymce.plugins.image.ui.Dialog',
   [
+    'ephox.sand.api.URL',
+    'global!document',
+    'global!Math',
+    'global!RegExp',
     'tinymce.core.Env',
+    'tinymce.core.ui.Factory',
     'tinymce.core.util.JSON',
     'tinymce.core.util.Tools',
     'tinymce.core.util.XHR',
-    'tinymce.core.ui.Throbber',
+    'tinymce.plugins.image.api.Settings',
     'tinymce.plugins.image.core.Uploader',
-    'tinymce.plugins.image.core.Utils',
-    'global!Math',
-    'global!RegExp',
-    'global!document'
+    'tinymce.plugins.image.core.Utils'
   ],
-  function (Env, JSON, Tools, XHR, Throbber, Uploader, Utils, Math, RegExp, document) {
-
+  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils) {
     return function (editor) {
       /*
        * Retrieves the HTML markup for the internal file chooser and calls the provided
@@ -94,7 +95,7 @@ define(
       function showDialog(typeAheadFieldHtml) {
         var win, data = {}, imgElm, figureElm, dom = editor.dom, settings = editor.settings;
         var width, height, classListCtrl, imageDimensions = settings.image_dimensions !== false;
-        var chooserElm, srcCtrl;
+        var chooserElm, srcCtrl, classList;
         var isAltTextManuallyUpdated = false;
 
         /**
@@ -170,7 +171,7 @@ define(
           newHeight = heightCtrl.value();
 
           if (win.find('#constrain')[0].checked() && width && height && newWidth && newHeight) {
-            if (width != newWidth) {
+            if (width !== newWidth) {
               newHeight = Math.round((newWidth / width) * newHeight);
 
               if (!isNaN(newHeight)) {
@@ -190,7 +191,7 @@ define(
         }
 
         function updateStyle() {
-          if (!editor.settings.image_advtab) {
+          if (!Settings.hasAdvTab(editor)) {
             return;
           }
 
@@ -213,7 +214,7 @@ define(
         }
 
         function updateVSpaceHSpaceBorder() {
-          if (!editor.settings.image_advtab) {
+          if (!Settings.hasAdvTab(editor)) {
             return;
           }
 
@@ -349,9 +350,15 @@ define(
           editor.undoManager.transact(function () {
             if (!data.src) {
               if (imgElm) {
-                dom.remove(imgElm);
+                var elm = dom.is(imgElm.parentNode, 'figure.image') ? imgElm.parentNode : imgElm;
+                dom.remove(elm);
                 editor.focus();
                 editor.nodeChanged();
+
+                if (dom.isEmpty(editor.getBody())) {
+                  editor.setContent('');
+                  editor.selection.setCursorLocation();
+                }
               }
 
               return;
@@ -381,8 +388,11 @@ define(
             if (data.caption === false) {
               if (dom.is(imgElm.parentNode, 'figure.image')) {
                 figureElm = imgElm.parentNode;
+                dom.setAttrib(imgElm, 'contenteditable', null);
                 dom.insertAfter(imgElm, figureElm);
                 dom.remove(figureElm);
+                editor.selection.select(imgElm);
+                editor.nodeChanged();
               }
             }
 
@@ -390,6 +400,7 @@ define(
               if (!dom.is(imgElm.parentNode, 'figure.image')) {
                 oldImg = imgElm;
                 imgElm = imgElm.cloneNode(true);
+                imgElm.contentEditable = true;
                 figureElm = dom.create('figure', { 'class': 'image' });
                 figureElm.appendChild(imgElm);
                 figureElm.appendChild(dom.create('figcaption', { contentEditable: true }, 'Caption'));
@@ -454,7 +465,7 @@ define(
         }
 
         if (imgElm &&
-          (imgElm.nodeName != 'IMG' ||
+          (imgElm.nodeName !== 'IMG' ||
             imgElm.getAttribute('data-mce-object') ||
             imgElm.getAttribute('data-mce-placeholder'))) {
           imgElm = null;
@@ -477,19 +488,20 @@ define(
           data.decorative = !data.alt.length;
         }
 
-        if (editor.settings.image_class_list) {
+        classList = Settings.getClassList(editor);
+        if (classList) {
           // Add a 'None' option to the beginning if it is not already present.
-          if (typeof editor.settings.image_class_list[0] !== 'object') {
+          if (typeof classList[0] !== 'object') {
             // Using an object as opposed to a string so we can use an empty value.
-            editor.settings.image_class_list.unshift({
+            classList.unshift({
               text: 'None',
               value: ''
             });
           }
 
           // If the images's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
-          if (data['class'] && editor.settings.image_class_list.indexOf(data['class']) === -1) {
-            editor.settings.image_class_list.push(data['class']);
+          if (data['class'] && classList.indexOf(data['class']) === -1) {
+            classList.push(data['class']);
           }
 
           classListCtrl = {
@@ -498,7 +510,7 @@ define(
             label: 'Class',
             style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
             values: Utils.buildListItems(
-              editor.settings.image_class_list,
+              classList,
               function (item) {
                 if (item.value) {
                   item.textStyle = function () {
@@ -575,7 +587,7 @@ define(
 
         generalFormItems.push(srcCtrl);
 
-        if (editor.settings.image_description !== false) {
+        if (Settings.hasDescription(editor)) {
           generalFormItems.push({
             type: 'container',
             label: 'Decorative',
@@ -630,7 +642,7 @@ define(
           });
         }
 
-        if (editor.settings.image_title) {
+        if (Settings.hasImageTitle(editor)) {
           generalFormItems.push({ name: 'title', type: 'textbox', label: 'Image Title' });
         }
 
@@ -653,10 +665,10 @@ define(
 
         generalFormItems.push(classListCtrl);
 
-        if (editor.settings.image_advtab || editor.settings.images_upload_url) {
+        if (Settings.hasAdvTab(editor) || editor.settings.images_upload_url) {
           var advTabItems = [];
 
-          if (editor.settings.image_caption && Env.ceFalse) {
+          if (Settings.hasImageCaption(editor) && Env.ceFalse) {
             advTabItems.push({
               name: 'caption',
               type: 'checkbox',
@@ -673,7 +685,7 @@ define(
             }
           ];
 
-          if (editor.settings.image_advtab) {
+          if (Settings.hasAdvTab(editor)) {
             // Parse styles from img
             if (imgElm) {
               if (imgElm.style.marginLeft && imgElm.style.marginRight && imgElm.style.marginLeft === imgElm.style.marginRight) {

@@ -14,10 +14,10 @@ define(
     'tinymce.core.util.Delay',
     'tinymce.core.util.Tools',
     'tinymce.core.util.XHR',
-    'tinymce.plugins.link.core.Utils',
-    'tinymce.plugins.link.core.Settings'
+    'tinymce.plugins.link.api.Settings',
+    'tinymce.plugins.link.core.Utils'
   ],
-  function (Delay, Tools, XHR, Utils, Settings) {
+  function (Delay, Tools, XHR, Settings, Utils) {
     var attachState = {};
 
     /**
@@ -446,7 +446,7 @@ define(
           }
 
           // Is email and not //user@domain.com
-          if (href.indexOf('@') > 0 && href.indexOf('//') == -1 && href.indexOf('mailto:') == -1) {
+          if (href.indexOf('@') > 0 && href.indexOf('//') === -1 && href.indexOf('mailto:') === -1) {
             delayedConfirm(
               editor,
               'The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?',

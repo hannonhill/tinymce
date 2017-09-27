@@ -1,15 +1,20 @@
 asynctest(
   'tinymce.plugins.paste.browser.PasteBin', [
-    'ephox.katamari.api.Obj',
     'ephox.agar.api.Assertions',
+    'ephox.agar.api.Chain',
     'ephox.agar.api.Pipeline',
-    'ephox.agar.api.Step',
-    'tinymce.themes.modern.Theme',
-    'tinymce.plugins.paste.Plugin',
+    'ephox.katamari.api.Id',
+    'ephox.katamari.api.Merger',
+    'ephox.katamari.api.Obj',
     'ephox.mcagar.api.TinyLoader',
-    'tinymce.plugins.paste.core.PasteBin'
+    'global!setTimeout',
+    'tinymce.core.EditorManager',
+    'tinymce.core.test.ViewBlock',
+    'tinymce.plugins.paste.core.PasteBin',
+    'tinymce.plugins.paste.Plugin',
+    'tinymce.themes.modern.Theme'
   ],
-  function (Obj, Assertions, Pipeline, Step, Theme, PastePlugin, TinyLoader, PasteBin) {
+  function (Assertions, Chain, Pipeline, Id, Merger, Obj, TinyLoader, setTimeout, EditorManager, ViewBlock, PasteBin, PastePlugin, Theme) {
     var success = arguments[arguments.length - 2];
     var failure = arguments[arguments.length - 1];
 
@@ -29,9 +34,45 @@ asynctest(
       }
     ];
 
+    var viewBlock = new ViewBlock();
 
-    var sAssertCases = function (editor, cases) {
-      return Step.sync(function () {
+    var cCreateEditorFromSettings = function (settings, html) {
+      return Chain.on(function (viewBlock, next, die) {
+        var randomId = Id.generate('tiny');
+        html = html || '<textarea></textarea>';
+
+        viewBlock.update(html);
+        viewBlock.get().firstChild.id = randomId;
+
+        EditorManager.init(Merger.merge(settings || {}, {
+          selector: '#' + randomId,
+          add_unload_trigger: false,
+          indent: false,
+          plugins: 'paste',
+          skin_url: '/project/src/skins/lightgray/dist/lightgray',
+          setup: function (editor) {
+            editor.on('SkinLoaded', function () {
+              setTimeout(function () {
+                next(Chain.wrap(editor));
+              }, 0);
+            });
+          }
+        }));
+      });
+    };
+
+    var cCreateEditorFromHtml = function (html, settings) {
+      return cCreateEditorFromSettings(settings, html);
+    };
+
+    var cRemoveEditor = function () {
+      return Chain.op(function (editor) {
+        editor.remove();
+      });
+    };
+
+    var cAssertCases = function (cases) {
+      return Chain.op(function (editor) {
         var pasteBin = new PasteBin(editor);
         Obj.each(cases, function (c, i) {
           editor.getBody().innerHTML = c.content;
@@ -41,16 +82,24 @@ asynctest(
       });
     };
 
+    viewBlock.attach();
 
-    TinyLoader.setup(function (editor, onSuccess, onFailure) {
-      Pipeline.async({}, [
-        sAssertCases(editor, cases)
-      ], onSuccess, onFailure);
-    }, {
-      add_unload_trigger: false,
-      indent: false,
-      plugins: 'paste',
-      skin_url: '/project/src/skins/lightgray/dist/lightgray'
-    }, success, failure);
+    Pipeline.async({}, [
+      Chain.asStep(viewBlock, [
+        cCreateEditorFromSettings(),
+        cAssertCases(cases),
+        cRemoveEditor()
+      ]),
+
+      // TINY-1208/TINY-1209: same cases, but for inline editor
+      Chain.asStep(viewBlock, [
+        cCreateEditorFromHtml('<div>some text</div>', { inline: true }),
+        cAssertCases(cases),
+        cRemoveEditor()
+      ])
+    ], function () {
+      viewBlock.detach();
+      success();
+    }, failure);
   }
 );
