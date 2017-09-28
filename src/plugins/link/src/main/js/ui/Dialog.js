@@ -159,7 +159,7 @@ define(
             href += '#' + anchor;
           }
 
-          this.parent().parent().find('#text')[0].value(href);
+          win.find('#text').value(href);
         }
       };
 
