@@ -11,13 +11,14 @@
 define(
   'tinymce.plugins.link.ui.Dialog',
   [
+    'ephox.katamari.api.Strings',
     'tinymce.core.util.Delay',
     'tinymce.core.util.Tools',
     'tinymce.core.util.XHR',
     'tinymce.plugins.link.api.Settings',
     'tinymce.plugins.link.core.Utils'
   ],
-  function (Delay, Tools, XHR, Settings, Utils) {
+  function (Strings, Delay, Tools, XHR, Settings, Utils) {
     var attachState = {};
 
     /**
@@ -211,7 +212,7 @@ define(
           if (data.anchor !== '') {
             data.href = splitUrl[0];
           }
-        } else if (data.href.startsWith('#')) {
+        } else if (Strings.startsWith(data.href, '#')) {
           // If the href starts with a #, splutUrl will contain a single value with the # removed.
           data.anchor = splitUrl[0];
           data.href = '';
