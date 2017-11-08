@@ -461,15 +461,30 @@ define(
             return;
           }
 
+          // If link entered does not begin with https://
+          if (href.match(/http:/i)) {
+            delayedConfirm(
+              editor,
+              'The URL you entered is insecure. It is recommended to use https:// for security and to avoid browsers from blocking content. Do you want to use https:// instead?',
+              function (state) {
+                if (state) {
+                  resultData.href = href.replace('http', 'https');
+                }
+                insertLink(resultData);
+              }
+            );
+            return;
+          }
+
           // Is not protocol prefixed
           if ((assumeExternalTargets === true && !/^\w+:/i.test(href)) ||
             (assumeExternalTargets === false && /^\s*www[\.|\d\.]/i.test(href))) {
             delayedConfirm(
               editor,
-              'The URL you entered seems to be an external link. Do you want to add the required http:// prefix?',
+              'The URL you entered seems to be an external link. Do you want to add the required https:// prefix?',
               function (state) {
                 if (state) {
-                  resultData.href = 'http://' + href;
+                  resultData.href = 'https://' + href;
                 }
                 insertLink(resultData);
               }
