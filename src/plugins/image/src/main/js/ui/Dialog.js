@@ -297,7 +297,7 @@ define(
           } else {
             data.src = data.externalSrc;
 
-            if (data.src === '' || data.src === 'http://') {
+            if (data.src === '' || data.src === 'https://') {
               editor.windowManager.alert("Please fill in the image URL.");
               return false;
             }
@@ -533,7 +533,7 @@ define(
           type: 'textbox',
           size: 40,
           label: 'Image',
-          value: data.source_type === 'external' ? data.src : 'http://',
+          value: data.source_type === 'external' ? data.src : 'https://',
           onchange: onSrcChange
         };
 
