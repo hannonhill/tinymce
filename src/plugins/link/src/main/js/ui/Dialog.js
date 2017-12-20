@@ -477,6 +477,11 @@ define(
             return;
           }
 
+          // Show a note to the user if link entered begins with http://.
+          if (href.match(/http:/i)) {
+            editor.windowManager.alert('Note: The URL you entered begins with http://, you may want to consider using https:// for security and to avoid browsers from blocking content.');
+          }
+
           resultData.href = href;
           insertLink(resultData);
         }
