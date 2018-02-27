@@ -87,7 +87,8 @@ define(
             callback('');
           },
           success: function (data) {
-            callback(data.dom ? data.dom.tOrDN : '');
+            data = JSON.parse(data);
+            callback(data && data.dom ? data.dom.tOrDN : '');
           }
         });
       }
