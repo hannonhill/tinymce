@@ -231,6 +231,18 @@ define(
       return url.match(/^(?:site:\/\/|\/)\w/) !== null;
     };
 
+    /**
+     * Helper method that converts the provided external link text field into
+     * a jQuery object.
+     *
+     * @param {tinymce.ui.Control} externalLinkField
+     * @return {jQuery}
+     */
+     /* global $ */
+    var convertExternalLinkFieldToJqueryObject = function (externalLinkField) {
+      return $(externalLinkField.getEl());
+    };
+
     return {
       getImageSize: getImageSize,
       buildListItems: buildListItems,
@@ -244,7 +256,8 @@ define(
       getInternalLinkChooser: getInternalLinkChooser,
       getInternalLinkChooserPathFieldElement: getInternalLinkChooserPathFieldElement,
       internalPathToRenderFileURL: internalPathToRenderFileURL,
-      isInternalUrl: isInternalUrl
+      isInternalUrl: isInternalUrl,
+      convertExternalLinkFieldToJqueryObject: convertExternalLinkFieldToJqueryObject
     };
   }
 );

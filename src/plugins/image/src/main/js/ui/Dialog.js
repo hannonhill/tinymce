@@ -762,6 +762,20 @@ define(
 
         // Call srcChange on chooser clear and submission.
         chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', onSrcChange);
+
+        Utils.convertExternalLinkFieldToJqueryObject(win.find('#externalSrc')[0]).find('.mce-open')
+          .addClass('damasset-chooser')
+          .on('damembed.cs.chooser.panel.tab', function (e, item) {
+            var externalSrcCtrl = win.find('#externalSrc');
+            var altCtrl = win.find('#alt');
+
+            externalSrcCtrl.value(item.url);
+            externalSrcCtrl.fire('change');
+
+            if (!altCtrl.value()) {
+              altCtrl.value(item.filename);
+            }
+          });
       }
 
       function open() {

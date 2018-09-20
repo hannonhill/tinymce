@@ -277,6 +277,17 @@ define(
       return url.match(/^#$|[^#]+/g) || [];
     };
 
+    /**
+     * Helper method that converts the provided external link text field into
+     * a jQuery object.
+     *
+     * @param {tinymce.ui.Control} externalLinkField
+     * @return {jQuery}
+     */
+     /* global $ */
+    var convertExternalLinkFieldToJqueryObject = function (externalLinkField) {
+      return $(externalLinkField.getEl());
+    };
 
     return {
       link: link,
@@ -295,7 +306,8 @@ define(
       getInternalLinkChooser: getInternalLinkChooser,
       getInternalLinkChooserPathFieldElement: getInternalLinkChooserPathFieldElement,
       isInternalUrl: isInternalUrl,
-      splitUrlByHash: splitUrlByHash
+      splitUrlByHash: splitUrlByHash,
+      convertExternalLinkFieldToJqueryObject: convertExternalLinkFieldToJqueryObject
     };
   }
 );

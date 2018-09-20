@@ -496,6 +496,13 @@ define(
         // Call the urlChange method with the context of the linkPath DOM Element.
         urlChange.call(Utils.getInternalLinkChooserPathFieldElement(), {});
       });
+
+      Utils.convertExternalLinkFieldToJqueryObject(win.find('#externalLink')[0]).find('.mce-open')
+        .addClass('damasset-chooser')
+        .on('damembed.cs.chooser.panel.tab', function (e, item) {
+          win.find('#externalLink').value(item.url);
+          win.find('#text').value(item.filename);
+        });
     };
 
     var open = function (editor) {
