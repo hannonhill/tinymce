@@ -39,10 +39,29 @@ define(
       };
     };
 
+    /**
+     * Iterates over nodes with a caption attribute and removes the attribute from images.
+     * This attribute is added by the image plugin, but is an invalid attribute for img tags.
+     *
+     * @param {array} nodes - The nodes containing caption attributes
+     * @param {string} name - Name of the attribute filter
+     *
+     */
+    var removeCaptionFromImages = function (nodes, name) {
+      var i = nodes.length, node;
+      while (i--) {
+        node = nodes[i];
+        if (node.name === 'img') {
+          node.attr('caption', null);
+        }
+      }
+    };
+
     var setup = function (editor) {
       editor.on('preInit', function () {
         editor.parser.addNodeFilter('figure', toggleContentEditableState(true));
         editor.serializer.addNodeFilter('figure', toggleContentEditableState(false));
+        editor.serializer.addAttributeFilter('caption', removeCaptionFromImages);
       });
     };
 
