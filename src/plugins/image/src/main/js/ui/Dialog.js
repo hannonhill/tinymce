@@ -168,11 +168,11 @@ define(
             return;
           }
 
-          newWidth = widthCtrl.value();
-          newHeight = heightCtrl.value();
+          newWidth = parseInt(widthCtrl.value(), 10);
+          newHeight = parseInt(heightCtrl.value(), 10);
 
           if (win.find('#constrain')[0].checked() && width && height && newWidth && newHeight) {
-            if (width !== newWidth) {
+            if (parseInt(width, 10) !== newWidth) {
               newHeight = Math.round((newWidth / width) * newHeight);
 
               if (!isNaN(newHeight)) {
