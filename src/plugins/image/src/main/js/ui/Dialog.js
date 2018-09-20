@@ -531,7 +531,8 @@ define(
         // Initialize the external source control
         srcCtrl = {
           name: 'externalSrc',
-          type: 'textbox',
+          type: 'filepicker',
+          filetype: 'image',
           size: 40,
           label: 'Image',
           value: data.source_type === 'external' ? data.src : 'https://',

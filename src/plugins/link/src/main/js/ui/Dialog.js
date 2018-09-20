@@ -243,8 +243,9 @@ define(
       // Initialize the external link control
       hrefCtrl = {
         name: 'externalLink',
-        type: 'textbox',
-        size: 40,
+        type: 'filepicker',
+        filetype: 'file',
+        size: 38,
         label: 'Link',
         value: data.source_type === 'external' ? data.href : 'https://',
         onchange: urlChange,
