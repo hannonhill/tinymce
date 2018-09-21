@@ -232,15 +232,36 @@ define(
     };
 
     /**
-     * Helper method that converts the provided external link text field into
-     * a jQuery object.
+     * Helper method that converts the provided TinyMCE field into a jQuery object.
      *
-     * @param {tinymce.ui.Control} externalLinkField
+     * @param {tinymce.ui.Control} tinymceField
      * @return {jQuery}
      */
      /* global $ */
-    var convertExternalLinkFieldToJqueryObject = function (externalLinkField) {
-      return $(externalLinkField.getEl());
+    var convertTinyMCEFieldToJqueryObject = function (tinymceField) {
+      return $(tinymceField.getEl());
+    };
+
+    /**
+     * Helper method that generates a string containing the enabled DAM integrations
+     * based on the given editor's settings. If there are more than one enabled, they
+     * will be joined with ' or '.
+     *
+     * @param {tinymce.Editor} editor
+     * @return {string}
+     */
+    var generateEnabledDAMIntegrationsLabelFromEditorSettings = function (editor) {
+      var enabledIntegrationLabels = [];
+
+      if (editor.settings.dam_widen_enabled) {
+        enabledIntegrationLabels.push('Widen Collective');
+      }
+
+      if (editor.settings.dam_webdam_enabled) {
+        enabledIntegrationLabels.push('Webdam');
+      }
+
+      return enabledIntegrationLabels.join(' or ');
     };
 
     return {
@@ -257,7 +278,8 @@ define(
       getInternalLinkChooserPathFieldElement: getInternalLinkChooserPathFieldElement,
       internalPathToRenderFileURL: internalPathToRenderFileURL,
       isInternalUrl: isInternalUrl,
-      convertExternalLinkFieldToJqueryObject: convertExternalLinkFieldToJqueryObject
+      convertTinyMCEFieldToJqueryObject: convertTinyMCEFieldToJqueryObject,
+      generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings
     };
   }
 );

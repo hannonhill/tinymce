@@ -144,10 +144,12 @@ define(
           if (this.name() === 'source_type_internal' && this.checked()) {
             win.find('#internalSrc').show();
             win.find('#externalSrc').hide();
+            win.find('#damassetChooserLink').hide();
             data.source_type = 'internal';
           } else {
             win.find('#internalSrc').hide();
             win.find('#externalSrc').show();
+            win.find('#damassetChooserLink').show();
             data.source_type = 'external';
           }
 
@@ -531,8 +533,7 @@ define(
         // Initialize the external source control
         srcCtrl = {
           name: 'externalSrc',
-          type: 'filepicker',
-          filetype: 'image',
+          type: 'textbox',
           size: 40,
           label: 'Image',
           value: data.source_type === 'external' ? data.src : 'https://',
@@ -585,6 +586,27 @@ define(
               }
             ]
           };
+
+          var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
+          if (damIntegrationBrowseLabel.length) {
+            srcCtrl.items.push({
+              type: 'container',
+              name: 'damassetChooserLink',
+              label: '',
+              layout: 'flex',
+              direction: 'column',
+              align: 'center',
+              spacing: 5,
+              hidden: true,
+              items: [
+                {
+                  name: 'damassetChooserLinkHtml',
+                  type: 'container',
+                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + '</a>'
+                }
+              ]
+            });
+          }
         }
 
         generalFormItems.push(srcCtrl);
@@ -763,8 +785,7 @@ define(
         // Call srcChange on chooser clear and submission.
         chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', onSrcChange);
 
-        Utils.convertExternalLinkFieldToJqueryObject(win.find('#externalSrc')[0]).find('.mce-open')
-          .addClass('damasset-chooser')
+        Utils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
           .on('damembed.cs.chooser.panel.tab', function (e, item) {
             var externalSrcCtrl = win.find('#externalSrc');
             var altCtrl = win.find('#alt');
