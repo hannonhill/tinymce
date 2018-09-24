@@ -535,7 +535,7 @@ define(
           name: 'externalSrc',
           type: 'textbox',
           size: 40,
-          label: 'Image',
+          label: 'Image Source',
           value: data.source_type === 'external' ? data.src : 'https://',
           onchange: onSrcChange
         };
@@ -544,7 +544,7 @@ define(
         if (typeAheadFieldHtml.length) {
           generalFormItems.push({
             type: 'container',
-            label: 'Image Source',
+            label: 'Image Type',
             layout: 'flex',
             direction: 'row',
             align: 'center',
@@ -574,8 +574,8 @@ define(
           srcCtrl = {
             type: 'container',
             name: 'sourceContainer',
-            label: 'Image',
-            minHeight: 55,
+            label: 'Image Source',
+            minHeight: 60,
             items: [
               srcCtrl,
               {
@@ -602,7 +602,7 @@ define(
                 {
                   name: 'damassetChooserLinkHtml',
                   type: 'container',
-                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + '</a>'
+                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external images</a>'
                 }
               ]
             });
@@ -797,6 +797,8 @@ define(
               altCtrl.value(item.filename);
             }
           });
+
+        Utils.convertTinyMCEFieldToJqueryObject(win.find('#sourceContainer')[0]).prev('label').addClass('source-control-label');
       }
 
       function open() {

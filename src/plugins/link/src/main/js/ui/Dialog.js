@@ -247,7 +247,7 @@ define(
         name: 'externalLink',
         type: 'textbox',
         size: 40,
-        label: 'Link',
+        label: 'Link Source',
         value: data.source_type === 'external' ? data.href : 'https://',
         onchange: urlChange,
         onkeyup: updateText
@@ -257,7 +257,7 @@ define(
       if (typeAheadFieldHtml) {
         sourceTypeCtrl = {
           type: 'container',
-          label: 'Link Source',
+          label: 'Link Type',
           layout: 'flex',
           direction: 'row',
           align: 'center',
@@ -286,8 +286,8 @@ define(
         hrefCtrl = {
           type: 'container',
           name: 'linkContainer',
-          label: 'Link',
-          minHeight: 55,
+          label: 'Link Source',
+          minHeight: 60,
           items: [
             hrefCtrl,
             {
@@ -314,7 +314,7 @@ define(
               {
                 name: 'damassetChooserLinkHtml',
                 type: 'container',
-                html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + '</a>'
+                html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external files</a>'
               }
             ]
           });
@@ -524,6 +524,8 @@ define(
           win.find('#externalLink').value(item.url);
           win.find('#text').value(item.filename);
         });
+
+      Utils.convertTinyMCEFieldToJqueryObject(win.find('#linkContainer')[0]).prev('label').addClass('source-control-label');
     };
 
     var open = function (editor) {
