@@ -510,6 +510,7 @@ module.exports = function (grunt) {
       'autoresize-plugin': { path: 'src/plugins/autoresize' },
       'autosave-plugin': { path: 'src/plugins/autosave' },
       'bbcode-plugin': { path: 'src/plugins/bbcode' },
+      'cascadelive-plugin': { path: 'src/plugins/cascadelive' },
       'charmap-plugin': { path: 'src/plugins/charmap' },
       'code-plugin': { path: 'src/plugins/code' },
       'codesample-plugin': { path: 'src/plugins/codesample' },
