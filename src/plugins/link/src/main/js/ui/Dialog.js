@@ -137,10 +137,12 @@ define(
         if (this.name() === 'source_type_internal' && this.checked()) {
           win.find('#internalLink').show();
           win.find('#externalLink').hide();
+          win.find('#damassetChooserLink').hide();
           data.source_type = 'internal';
         } else {
           win.find('#internalLink').hide();
           win.find('#externalLink').show();
+          win.find('#damassetChooserLink').show();
           data.source_type = 'external';
         }
 
@@ -245,7 +247,7 @@ define(
         name: 'externalLink',
         type: 'textbox',
         size: 40,
-        label: 'Link',
+        label: 'Link Source',
         value: data.source_type === 'external' ? data.href : 'https://',
         onchange: urlChange,
         onkeyup: updateText
@@ -255,7 +257,7 @@ define(
       if (typeAheadFieldHtml) {
         sourceTypeCtrl = {
           type: 'container',
-          label: 'Link Source',
+          label: 'Link Type',
           layout: 'flex',
           direction: 'row',
           align: 'center',
@@ -284,8 +286,8 @@ define(
         hrefCtrl = {
           type: 'container',
           name: 'linkContainer',
-          label: 'Link',
-          minHeight: 55,
+          label: 'Link Source',
+          minHeight: 60,
           items: [
             hrefCtrl,
             {
@@ -296,6 +298,27 @@ define(
             }
           ]
         };
+
+        var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
+        if (damIntegrationBrowseLabel.length) {
+          hrefCtrl.items.push({
+            type: 'container',
+            name: 'damassetChooserLink',
+            label: '',
+            layout: 'flex',
+            direction: 'column',
+            align: 'center',
+            spacing: 5,
+            hidden: true,
+            items: [
+              {
+                name: 'damassetChooserLinkHtml',
+                type: 'container',
+                html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external files</a>'
+              }
+            ]
+          });
+        }
       }
 
       if (Settings.shouldShowLinkAnchor(editor.settings)) {
@@ -495,6 +518,14 @@ define(
         // Call the urlChange method with the context of the linkPath DOM Element.
         urlChange.call(Utils.getInternalLinkChooserPathFieldElement(), {});
       });
+
+      Utils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
+        .on('damembed.cs.chooser.panel.tab', function (e, item) {
+          win.find('#externalLink').value(item.url);
+          win.find('#text').value(item.filename);
+        });
+
+      Utils.convertTinyMCEFieldToJqueryObject(win.find('#linkContainer')[0]).prev('label').addClass('source-control-label');
     };
 
     var open = function (editor) {

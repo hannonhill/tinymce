@@ -144,10 +144,12 @@ define(
           if (this.name() === 'source_type_internal' && this.checked()) {
             win.find('#internalSrc').show();
             win.find('#externalSrc').hide();
+            win.find('#damassetChooserLink').hide();
             data.source_type = 'internal';
           } else {
             win.find('#internalSrc').hide();
             win.find('#externalSrc').show();
+            win.find('#damassetChooserLink').show();
             data.source_type = 'external';
           }
 
@@ -533,7 +535,7 @@ define(
           name: 'externalSrc',
           type: 'textbox',
           size: 40,
-          label: 'Image',
+          label: 'Image Source',
           value: data.source_type === 'external' ? data.src : 'https://',
           onchange: onSrcChange
         };
@@ -542,7 +544,7 @@ define(
         if (typeAheadFieldHtml.length) {
           generalFormItems.push({
             type: 'container',
-            label: 'Image Source',
+            label: 'Image Type',
             layout: 'flex',
             direction: 'row',
             align: 'center',
@@ -572,8 +574,8 @@ define(
           srcCtrl = {
             type: 'container',
             name: 'sourceContainer',
-            label: 'Image',
-            minHeight: 55,
+            label: 'Image Source',
+            minHeight: 60,
             items: [
               srcCtrl,
               {
@@ -584,6 +586,27 @@ define(
               }
             ]
           };
+
+          var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
+          if (damIntegrationBrowseLabel.length) {
+            srcCtrl.items.push({
+              type: 'container',
+              name: 'damassetChooserLink',
+              label: '',
+              layout: 'flex',
+              direction: 'column',
+              align: 'center',
+              spacing: 5,
+              hidden: true,
+              items: [
+                {
+                  name: 'damassetChooserLinkHtml',
+                  type: 'container',
+                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external images</a>'
+                }
+              ]
+            });
+          }
         }
 
         generalFormItems.push(srcCtrl);
@@ -761,6 +784,21 @@ define(
 
         // Call srcChange on chooser clear and submission.
         chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', onSrcChange);
+
+        Utils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
+          .on('damembed.cs.chooser.panel.tab', function (e, item) {
+            var externalSrcCtrl = win.find('#externalSrc');
+            var altCtrl = win.find('#alt');
+
+            externalSrcCtrl.value(item.url);
+            externalSrcCtrl.fire('change');
+
+            if (!altCtrl.value()) {
+              altCtrl.value(item.filename);
+            }
+          });
+
+        Utils.convertTinyMCEFieldToJqueryObject(win.find('#sourceContainer')[0]).prev('label').addClass('source-control-label');
       }
 
       function open() {
