@@ -279,13 +279,15 @@ define(
 
     /**
      * Helper method that converts the provided TinyMCE field into a jQuery object.
+     * If the field passed does not exist, an empty jQuery object will be returned.
      *
      * @param {tinymce.ui.Control} tinymceField
      * @return {jQuery}
      */
      /* global $ */
     var convertTinyMCEFieldToJqueryObject = function (tinymceField) {
-      return $(tinymceField.getEl());
+      var element = tinymceField ? tinymceField.getEl() : null;
+      return $(element);
     };
 
     /**
