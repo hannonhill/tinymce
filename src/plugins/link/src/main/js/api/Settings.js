@@ -82,6 +82,10 @@ define(
       return editorSettings.link_anchor !== false;
     };
 
+    var isExternalOnly = function (editor) {
+      return editor.getParam('link_external_only', false);
+    };
+
     return {
       assumeExternalTargets: assumeExternalTargets,
       hasContextToolbar: hasContextToolbar,
@@ -97,7 +101,8 @@ define(
       hasLinkClassList: hasLinkClassList,
       shouldShowLinkTitle: shouldShowLinkTitle,
       allowUnsafeLinkTarget: allowUnsafeLinkTarget,
-      shouldShowLinkAnchor: shouldShowLinkAnchor
+      shouldShowLinkAnchor: shouldShowLinkAnchor,
+      isExternalOnly: isExternalOnly
     };
   }
 );

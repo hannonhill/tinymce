@@ -45,6 +45,10 @@ define(
       return editor.getParam('image_list', false);
     };
 
+    var isExternalOnly = function (editor) {
+      return editor.getParam('image_external_only', false);
+    };
+
     return {
       hasDimensions: hasDimensions,
       hasAdvTab: hasAdvTab,
@@ -53,7 +57,8 @@ define(
       hasDescription: hasDescription,
       hasImageTitle: hasImageTitle,
       hasImageCaption: hasImageCaption,
-      getImageList: getImageList
+      getImageList: getImageList,
+      isExternalOnly: isExternalOnly
     };
   }
 );

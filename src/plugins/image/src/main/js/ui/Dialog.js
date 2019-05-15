@@ -525,7 +525,7 @@ define(
           };
         }
 
-        data.source_type = imgElm === null || Utils.isInternalUrl(data.src) ? 'internal' : 'external';
+        data.source_type = (imgElm === null || Utils.isInternalUrl(data.src)) && !Settings.isExternalOnly(editor) ? 'internal' : 'external';
 
         // General settings shared between simple and advanced dialogs
         var generalFormItems = [];
@@ -540,73 +540,76 @@ define(
           onchange: onSrcChange
         };
 
-        // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate source controls.
-        if (typeAheadFieldHtml.length) {
-          generalFormItems.push({
-            type: 'container',
-            label: 'Image Type',
-            layout: 'flex',
-            direction: 'row',
-            align: 'center',
-            spacing: 5,
-            items: [
-              {
-                name: 'source_type_internal',
-                type: 'checkbox',
-                checked: data.source_type === 'internal',
-                onclick: toggleLinkFields,
-                text: 'Internal'
-              },
-              {
-                name: 'source_type_external',
-                type: 'checkbox',
-                checked: data.source_type === 'external',
-                onclick: toggleLinkFields,
-                text: 'External'
-              }
-            ]
-          });
-
-          // Set the default visibility of the external source control.
-          srcCtrl.hidden = data.source_type !== 'external';
-
-          // Turn the control into a container, with the original added as one of the items.
-          srcCtrl = {
-            type: 'container',
-            name: 'sourceContainer',
-            label: 'Image Source',
-            minHeight: 60,
-            items: [
-              srcCtrl,
-              {
-                name: 'internalSrc',
-                type: 'container',
-                hidden: data.source_type !== 'internal',
-                html: typeAheadFieldHtml
-              }
-            ]
-          };
-
-          var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
-          if (damIntegrationBrowseLabel.length) {
-            srcCtrl.items.push({
+        //Don't show source type options when the use external only option is specified
+        if (!Settings.isExternalOnly(editor)) {
+          // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate source controls.
+          if (typeAheadFieldHtml.length) {
+            generalFormItems.push({
               type: 'container',
-              name: 'damassetChooserLink',
-              label: '',
+              label: 'Image Type',
               layout: 'flex',
-              direction: 'column',
+              direction: 'row',
               align: 'center',
               spacing: 5,
-              hidden: true,
               items: [
                 {
-                  name: 'damassetChooserLinkHtml',
-                  type: 'container',
-                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external images</a>'
+                  name: 'source_type_internal',
+                  type: 'checkbox',
+                  checked: data.source_type === 'internal',
+                  onclick: toggleLinkFields,
+                  text: 'Internal'
+                },
+                {
+                  name: 'source_type_external',
+                  type: 'checkbox',
+                  checked: data.source_type === 'external',
+                  onclick: toggleLinkFields,
+                  text: 'External'
                 }
               ]
             });
+
+            // Set the default visibility of the external source control.
+            srcCtrl.hidden = data.source_type !== 'external';
+
+            // Turn the control into a container, with the original added as one of the items.
+            srcCtrl = {
+              type: 'container',
+              name: 'sourceContainer',
+              label: 'Image Source',
+              minHeight: 60,
+              items: [
+                srcCtrl,
+                {
+                  name: 'internalSrc',
+                  type: 'container',
+                  hidden: data.source_type !== 'internal',
+                  html: typeAheadFieldHtml
+                }
+              ]
+            };
           }
+
+            var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
+            if (damIntegrationBrowseLabel.length) {
+              srcCtrl.items.push({
+                type: 'container',
+                name: 'damassetChooserLink',
+                label: '',
+                layout: 'flex',
+                direction: 'column',
+                align: 'center',
+                spacing: 5,
+                hidden: true,
+                items: [
+                  {
+                    name: 'damassetChooserLinkHtml',
+                    type: 'container',
+                    html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external images</a>'
+                  }
+                ]
+              });
+            }
         }
 
         generalFormItems.push(srcCtrl);
