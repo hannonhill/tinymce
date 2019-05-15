@@ -11,25 +11,25 @@
 /*eslint no-console:0 */
 
 define(
-  'tinymce.plugins.cascadelive.demo.Demo',
+  'tinymce.plugins.clive.demo.Demo',
   [
     'tinymce.core.EditorManager',
     'tinymce.plugins.code.Plugin',
-    'tinymce.plugins.cascadelive.Plugin',
+    'tinymce.plugins.clive.Plugin',
     'tinymce.themes.modern.Theme'
   ],
-  function (EditorManager, CodePlugin, CascadeLivePlugin, ModernTheme) {
+  function (EditorManager, CodePlugin, ClivePlugin, ModernTheme) {
     return function () {
       CodePlugin();
-      CascadeLivePlugin();
+      ClivePlugin();
       ModernTheme();
 
       EditorManager.init({
         selector: "textarea.tinymce",
         theme: "modern",
         skin_url: "../../../../../skins/lightgray/dist/lightgray",
-        plugins: "cascadelive code",
-        toolbar: "cascadelive code",
+        plugins: "clive code",
+        toolbar: "clive code",
         media_dimensions: false,
         height: 600
       });

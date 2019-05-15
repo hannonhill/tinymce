@@ -12,7 +12,7 @@ module.exports = function (grunt) {
       "plugin": {
         config_js: "config/bolt/prod.js",
         output_dir: "scratch",
-        main: "tinymce.plugins.cascadelive.Plugin",
+        main: "tinymce.plugins.clive.Plugin",
         filename: "plugin",
 
         generate_inline: true,
@@ -29,7 +29,7 @@ module.exports = function (grunt) {
         files: [
           {
             src: "scratch/inline/plugin.raw.js",
-            dest: "dist/cascadelive/plugin.js"
+            dest: "dist/clive/plugin.js"
           }
         ]
       }
@@ -61,7 +61,7 @@ module.exports = function (grunt) {
         files: [
           {
             src: "scratch/inline/plugin.js",
-            dest: "dist/cascadelive/plugin.min.js"
+            dest: "dist/clive/plugin.min.js"
           }
         ]
       }
