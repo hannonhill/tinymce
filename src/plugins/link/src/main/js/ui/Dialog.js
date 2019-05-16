@@ -255,7 +255,7 @@ define(
 
       //Don't show source type options when the use external only option is specified
       if (!Settings.isExternalOnly(editor)) {
-      // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate URL controls.
+        // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate URL controls.
         if (typeAheadFieldHtml) {
           sourceTypeCtrl = {
             type: 'container',
@@ -322,7 +322,7 @@ define(
             });
           }
         }
-    }
+      }
 
       if (Settings.shouldShowLinkAnchor(editor.settings)) {
         anchorCtrl = {

@@ -590,26 +590,26 @@ define(
             };
           }
 
-            var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
-            if (damIntegrationBrowseLabel.length) {
-              srcCtrl.items.push({
-                type: 'container',
-                name: 'damassetChooserLink',
-                label: '',
-                layout: 'flex',
-                direction: 'column',
-                align: 'center',
-                spacing: 5,
-                hidden: true,
-                items: [
-                  {
-                    name: 'damassetChooserLinkHtml',
-                    type: 'container',
-                    html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external images</a>'
-                  }
-                ]
-              });
-            }
+          var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
+          if (damIntegrationBrowseLabel.length) {
+            srcCtrl.items.push({
+              type: 'container',
+              name: 'damassetChooserLink',
+              label: '',
+              layout: 'flex',
+              direction: 'column',
+              align: 'center',
+              spacing: 5,
+              hidden: true,
+              items: [
+                {
+                  name: 'damassetChooserLinkHtml',
+                  type: 'container',
+                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external images</a>'
+                }
+              ]
+            });
+          }
         }
 
         generalFormItems.push(srcCtrl);
