@@ -248,7 +248,7 @@ define(
         type: 'textbox',
         size: 40,
         label: 'Link Source',
-        value: data.source_type === 'external' ? data.href : 'https://',
+        value: data.source_type === 'external' && data.href ? data.href : 'https://',
         onchange: urlChange,
         onkeyup: updateText
       };

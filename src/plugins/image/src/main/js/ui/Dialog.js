@@ -536,7 +536,7 @@ define(
           type: 'textbox',
           size: 40,
           label: 'Image Source',
-          value: data.source_type === 'external' ? data.src : 'https://',
+          value: data.source_type === 'external' && data.src ? data.src : 'https://',
           onchange: onSrcChange
         };
 
