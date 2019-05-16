@@ -222,8 +222,7 @@ define(
       }
 
       // Determine the source type based on the link's href value, or default to internal if empty.
-      data.source_type = (Utils.isInternalUrl(data.href) || data.href === '') && !Settings.isExternalOnly(editor) ? 'internal' : 'external';
-
+      data.source_type = Utils.getSourceType (data.href, editor);
       if (anchorElm) {
         data.target = dom.getAttrib(anchorElm, 'target');
       } else if (Settings.hasDefaultLinkTarget(editor.settings)) {

@@ -312,6 +312,27 @@ define(
       return enabledIntegrationLabels.join(' or ');
     };
 
+   /**
+    * Helper method that returns a string containing the source type (internal or external) of the link
+    * based on the href or given editor's settings.
+    *
+    * @param {string}
+    * @param {tinymce.Editor} editor
+    * @return {string}
+    */
+    var getSourceType = function (href, editor) {
+      if (Settings.isExternalOnly(editor)) {
+        return 'external';
+      }
+
+      //Has an internal Url or none at all, default to internal
+      if (isInternalUrl(href) || href === '') {
+        return 'internal';
+      } else {
+        return 'external';
+      }
+    };
+
     return {
       link: link,
       unlink: unlink,
@@ -331,7 +352,8 @@ define(
       isInternalUrl: isInternalUrl,
       splitUrlByHash: splitUrlByHash,
       convertTinyMCEFieldToJqueryObject: convertTinyMCEFieldToJqueryObject,
-      generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings
+      generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
+      getSourceType: getSourceType
     };
   }
 );

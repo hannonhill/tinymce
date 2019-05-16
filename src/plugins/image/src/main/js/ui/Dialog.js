@@ -525,7 +525,7 @@ define(
           };
         }
 
-        data.source_type = (imgElm === null || Utils.isInternalUrl(data.src)) && !Settings.isExternalOnly(editor) ? 'internal' : 'external';
+        data.source_type = Utils.getSourceType(imgElm, data.src, editor);
 
         // General settings shared between simple and advanced dialogs
         var generalFormItems = [];
