@@ -15,11 +15,12 @@
 define(
   'tinymce.plugins.image.core.Utils',
   [
+    'tinymce.plugins.image.api.Settings',
     'tinymce.core.util.Tools',
     'global!Math',
     'global!document'
   ],
-  function (Tools, Math, document) {
+  function (Settings, Tools, Math, document) {
 
     var getImageSize = function (url, callback) {
       var img = document.createElement('img');
@@ -266,6 +267,28 @@ define(
       return enabledIntegrationLabels.join(' or ');
     };
 
+   /**
+    * Helper method that returns a string containing the source type (internal or external) of the image
+    * based on the image source or given editor's settings.
+    *
+    * @param {object} imageElement
+    * @param {string} imageSource
+    * @param {tinymce.Editor} editor
+    * @return {string}
+    */
+    var getSourceType = function (imageElement, imageSource, editor) {
+      if (Settings.isExternalOnly(editor)) {
+        return 'external';
+      }
+
+      //default to internal images
+      if (imageElement === null || isInternalUrl(imageSource)) {
+        return 'internal';
+      } else {
+        return 'external';
+      }
+    };
+
     return {
       getImageSize: getImageSize,
       buildListItems: buildListItems,
@@ -281,7 +304,8 @@ define(
       internalPathToRenderFileURL: internalPathToRenderFileURL,
       isInternalUrl: isInternalUrl,
       convertTinyMCEFieldToJqueryObject: convertTinyMCEFieldToJqueryObject,
-      generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings
+      generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
+      getSourceType: getSourceType
     };
   }
 );

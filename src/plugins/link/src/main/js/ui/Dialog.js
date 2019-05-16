@@ -222,8 +222,7 @@ define(
       }
 
       // Determine the source type based on the link's href value, or default to internal if empty.
-      data.source_type = Utils.isInternalUrl(data.href) || data.href === '' ? 'internal' : 'external';
-
+      data.source_type = Utils.getSourceType (data.href, editor);
       if (anchorElm) {
         data.target = dom.getAttrib(anchorElm, 'target');
       } else if (Settings.hasDefaultLinkTarget(editor.settings)) {
@@ -248,76 +247,79 @@ define(
         type: 'textbox',
         size: 40,
         label: 'Link Source',
-        value: data.source_type === 'external' ? data.href : 'https://',
+        value: data.source_type === 'external' && data.href ? data.href : 'https://',
         onchange: urlChange,
         onkeyup: updateText
       };
 
-      // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate URL controls.
-      if (typeAheadFieldHtml) {
-        sourceTypeCtrl = {
-          type: 'container',
-          label: 'Link Type',
-          layout: 'flex',
-          direction: 'row',
-          align: 'center',
-          spacing: 5,
-          items: [
-            {
-              name: 'source_type_internal',
-              type: 'checkbox',
-              checked: data.source_type === 'internal',
-              onclick: toggleLinkFields, text: 'Internal'
-            },
-            {
-              name: 'source_type_external',
-              type: 'checkbox',
-              checked: data.source_type === 'external',
-              onclick: toggleLinkFields,
-              text: 'External'
-            }
-          ]
-        };
-
-        // Set the default visibility of the external URL control.
-        hrefCtrl.hidden = data.source_type !== 'external';
-
-        // Turn the control into a container, with the original added as one of the items.
-        hrefCtrl = {
-          type: 'container',
-          name: 'linkContainer',
-          label: 'Link Source',
-          minHeight: 60,
-          items: [
-            hrefCtrl,
-            {
-              name: 'internalLink',
-              type: 'container',
-              hidden: data.source_type !== 'internal',
-              html: typeAheadFieldHtml
-            }
-          ]
-        };
-
-        var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
-        if (damIntegrationBrowseLabel.length) {
-          hrefCtrl.items.push({
+      //Don't show source type options when the use external only option is specified
+      if (!Settings.isExternalOnly(editor)) {
+        // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate URL controls.
+        if (typeAheadFieldHtml) {
+          sourceTypeCtrl = {
             type: 'container',
-            name: 'damassetChooserLink',
-            label: '',
+            label: 'Link Type',
             layout: 'flex',
-            direction: 'column',
+            direction: 'row',
             align: 'center',
             spacing: 5,
-            hidden: true,
             items: [
               {
-                name: 'damassetChooserLinkHtml',
-                type: 'container',
-                html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external files</a>'
+                name: 'source_type_internal',
+                type: 'checkbox',
+                checked: data.source_type === 'internal',
+                onclick: toggleLinkFields, text: 'Internal'
+              },
+              {
+                name: 'source_type_external',
+                type: 'checkbox',
+                checked: data.source_type === 'external',
+                onclick: toggleLinkFields,
+                text: 'External'
               }
             ]
-          });
+          };
+
+          // Set the default visibility of the external URL control.
+          hrefCtrl.hidden = data.source_type !== 'external';
+
+          // Turn the control into a container, with the original added as one of the items.
+          hrefCtrl = {
+            type: 'container',
+            name: 'linkContainer',
+            label: 'Link Source',
+            minHeight: 60,
+            items: [
+              hrefCtrl,
+              {
+                name: 'internalLink',
+                type: 'container',
+                hidden: data.source_type !== 'internal',
+                html: typeAheadFieldHtml
+              }
+            ]
+          };
+
+          var damIntegrationBrowseLabel = Utils.generateEnabledDAMIntegrationsLabelFromEditorSettings(editor);
+          if (damIntegrationBrowseLabel.length) {
+            hrefCtrl.items.push({
+              type: 'container',
+              name: 'damassetChooserLink',
+              label: '',
+              layout: 'flex',
+              direction: 'column',
+              align: 'center',
+              spacing: 5,
+              hidden: true,
+              items: [
+                {
+                  name: 'damassetChooserLinkHtml',
+                  type: 'container',
+                  html: '<a href="javascript:void(0);" class="damasset-chooser">Browse ' + damIntegrationBrowseLabel + ' for external files</a>'
+                }
+              ]
+            });
+          }
         }
       }
 
