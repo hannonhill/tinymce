@@ -49,6 +49,10 @@ define(
       return editor.getParam('image_external_only', false);
     };
 
+    var getRestrictToFolderId = function (editor) {
+      return editor.getParam('image_restrict_to_folder_id');
+    };
+
     return {
       hasDimensions: hasDimensions,
       hasAdvTab: hasAdvTab,
@@ -58,7 +62,8 @@ define(
       hasImageTitle: hasImageTitle,
       hasImageCaption: hasImageCaption,
       getImageList: getImageList,
-      isExternalOnly: isExternalOnly
+      isExternalOnly: isExternalOnly,
+      getRestrictToFolderId: getRestrictToFolderId
     };
   }
 );
