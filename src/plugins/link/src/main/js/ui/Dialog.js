@@ -38,10 +38,15 @@ define(
       var selectedElm = selection.getNode();
       var anchorElm = dom.getParent(selectedElm, 'a[href]');
       var href = anchorElm ? dom.getAttrib(anchorElm, 'href') : '';
+      var restrictToFolderId = Settings.getRestrictToFolderId(editor);
 
       // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
       if (!Utils.isInternalUrl(href)) {
         href = '';
+      }
+
+      if (restrictToFolderId) {
+        cascadeLinkChooserUrl += '&restrictToFolderId=' + restrictToFolderId;
       }
 
       XHR.send({
