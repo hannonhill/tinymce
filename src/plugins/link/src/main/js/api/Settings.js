@@ -86,6 +86,10 @@ define(
       return editor.getParam('link_external_only', false);
     };
 
+    var getRestrictToFolderId = function (editor) {
+      return editor.getParam('link_restrict_to_folder_id');
+    };
+
     return {
       assumeExternalTargets: assumeExternalTargets,
       hasContextToolbar: hasContextToolbar,
@@ -102,7 +106,8 @@ define(
       shouldShowLinkTitle: shouldShowLinkTitle,
       allowUnsafeLinkTarget: allowUnsafeLinkTarget,
       shouldShowLinkAnchor: shouldShowLinkAnchor,
-      isExternalOnly: isExternalOnly
+      isExternalOnly: isExternalOnly,
+      getRestrictToFolderId: getRestrictToFolderId
     };
   }
 );

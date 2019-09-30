@@ -41,7 +41,13 @@ define(
        * @return function
        */
       function getTypeAheadFieldHtml(callback) {
+        var restrictToFolderId = Settings.getRestrictToFolderId(editor);
         var cascadeImageChooserUrl = 'CONTEXT_PATH/imagepopup.act?src=<IMG_SRC>&currentSiteId=' + Utils.getGlobalCascadeVariable().Variables.get('currentSiteId');
+
+        if (restrictToFolderId) {
+          cascadeImageChooserUrl += '&restrictToFolderId=' + restrictToFolderId;
+        }
+
         var selection = editor.selection, dom = editor.dom, imgElm, figureElm, src;
 
         imgElm = selection.getNode();
