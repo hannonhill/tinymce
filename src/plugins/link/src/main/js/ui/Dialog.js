@@ -16,9 +16,10 @@ define(
     'tinymce.core.util.Tools',
     'tinymce.core.util.XHR',
     'tinymce.plugins.link.api.Settings',
-    'tinymce.plugins.link.core.Utils'
+    'tinymce.plugins.link.core.Utils',
+    'tinymce.plugins.cascade.core.Utils'
   ],
-  function (Strings, Delay, Tools, XHR, Settings, Utils) {
+  function (Strings, Delay, Tools, XHR, Settings, Utils, CascadeUtils) {
     var attachState = {};
 
     /**
@@ -383,10 +384,25 @@ define(
         };
       }
 
-      if (Settings.hasLinkClassList(editor.settings)) {
+      if (editor.settings.style_formats) {
+        var classList;
+
+        classList = CascadeUtils.getClassesForDropdown(editor, editor.settings.link_class_list);
+
+        if (classList) {
+          // Add a 'None' option to the beginning if it is not already present.
+          if (typeof classList[0] !== 'object') {
+            // Using an object as opposed to a string so we can use an empty value.
+            classList.unshift({
+              text: 'None',
+              value: ''
+            });
+          }
+        }
+
         // If the link's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
-        if (data['class'] && Settings.getLinkClassList(editor.settings).indexOf(data['class']) === -1) {
-          Settings.getLinkClassList(editor.settings).push(data['class']);
+        if (data['class'] && classList.indexOf(data['class']) === -1) {
+          classList.push(data['class']);
         }
 
         classListCtrl = {
@@ -395,7 +411,7 @@ define(
           label: 'Class',
           style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
           values: buildListItems(
-            Settings.getLinkClassList(editor.settings),
+            classList,
             function (item) {
               if (item.value) {
                 item.textStyle = function () {

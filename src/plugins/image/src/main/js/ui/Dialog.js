@@ -26,9 +26,10 @@ define(
     'tinymce.core.util.XHR',
     'tinymce.plugins.image.api.Settings',
     'tinymce.plugins.image.core.Uploader',
-    'tinymce.plugins.image.core.Utils'
+    'tinymce.plugins.image.core.Utils',
+    'tinymce.plugins.cascade.core.Utils'
   ],
-  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils) {
+  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils, CascadeUtils) {
     return function (editor) {
       /*
        * Retrieves the HTML markup for the internal file chooser and calls the provided
@@ -497,21 +498,12 @@ define(
           data.decorative = !data.alt.length;
         }
 
-        classList = Settings.getClassList(editor);
-        if (classList) {
-          // Add a 'None' option to the beginning if it is not already present.
-          if (typeof classList[0] !== 'object') {
-            // Using an object as opposed to a string so we can use an empty value.
-            classList.unshift({
-              text: 'None',
-              value: ''
-            });
-          }
+        if (editor.settings.style_formats) {
+          classList = CascadeUtils.getClassesForDropdown(editor, Settings.getClassList(editor));
+        }
 
-          // If the images's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
-          if (data['class'] && classList.indexOf(data['class']) === -1) {
-            classList.push(data['class']);
-          }
+        if (classList) {
+          classList = CascadeUtils.appendOptionsToDropDown(classList, data);
 
           classListCtrl = {
             name: 'class',
