@@ -499,7 +499,7 @@ define(
         }
 
         if (editor.settings.style_formats) {
-          classList = CascadeUtils.getClassesForDropdown(editor, Settings.getClassList(editor));
+          classList = CascadeUtils.getImageClassesForDropdown(editor, Settings.getClassList(editor));
         }
 
         if (classList) {

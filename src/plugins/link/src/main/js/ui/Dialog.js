@@ -387,7 +387,7 @@ define(
       if (editor.settings.style_formats) {
         var classList;
 
-        classList = CascadeUtils.getClassesForDropdown(editor, editor.settings.link_class_list);
+        classList = CascadeUtils.getLinkClassesForDropdown(editor, editor.settings.link_class_list);
 
         if (classList) {
           // Add a 'None' option to the beginning if it is not already present.

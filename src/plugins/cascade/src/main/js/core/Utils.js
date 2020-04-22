@@ -8,7 +8,13 @@ define(
     'tinymce.core.util.Tools'
   ],
     function (Tools) {
-      var getClassesForDropdown = function (editor, defaultClassList) {
+      var getImageClassesForDropdown = function (editor, defaultClassList) {
+        return getClassesForDropdown(editor, defaultClassList, "image");
+      };
+      var getLinkClassesForDropdown = function (editor, defaultClassList) {
+        return getClassesForDropdown(editor, defaultClassList, "link");
+      };
+      var getClassesForDropdown = function (editor, defaultClassList, element) {
         var editorSettings = editor.settings;
         var classList = [];
 
@@ -19,7 +25,9 @@ define(
               var formatName = format.name;
               if (editor.formatter.canApply(formatName) && format.classes) {
                 Tools.each(format.classes, function (formatClass) {
-                  classList.push(formatClass);
+                  if (isInElementClassList(formatClass, element, editorSettings)) {
+                    classList.push(formatClass);
+                  }
                 });
               }
             });
@@ -28,6 +36,11 @@ define(
 
         return hasAdvancedFormatMenu(editor) ? classList : defaultClassList;
       };
+
+      var isInElementClassList = function (className, element, editorSettings) {
+        return element === 'image' ? editorSettings.image_class_list.includes(className) : editorSettings.link_class_list.includes(className);
+      };
+
       var hasAdvancedFormatMenu = function (editor) {
         var formatMenuItems = editor.settings.style_formats;
 
@@ -61,7 +74,10 @@ define(
       return {
         getClassesForDropdown: getClassesForDropdown,
         hasAdvancedFormatMenu: hasAdvancedFormatMenu,
-        appendOptionsToDropDown: appendOptionsToDropDown
+        appendOptionsToDropDown: appendOptionsToDropDown,
+        isInElementClassList: isInElementClassList,
+        getImageClassesForDropdown: getImageClassesForDropdown,
+        getLinkClassesForDropdown: getLinkClassesForDropdown
       };
     }
 );
