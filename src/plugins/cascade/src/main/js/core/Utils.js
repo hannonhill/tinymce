@@ -25,7 +25,7 @@ define(
             });
           }
         });
-       // return hasAdvancedFormatMenu(editor) ? classList : editorSettings.link_class_list;
+
         return hasAdvancedFormatMenu(editor) ? classList : defaultClassList;
       };
       var hasAdvancedFormatMenu = function (editor) {
