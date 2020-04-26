@@ -518,6 +518,7 @@ module.exports = function (grunt) {
       'compat3x-plugin': { path: 'src/plugins/compat3x' },
       'contextmenu-plugin': { path: 'src/plugins/contextmenu' },
       'directionality-plugin': { path: 'src/plugins/directionality' },
+      'embeddedblocks-plugin': { path: 'src/plugins/embeddedblocks' },
       'emoticons-plugin': { path: 'src/plugins/emoticons' },
       'help-plugin': { path: 'src/plugins/help' },
       'fullpage-plugin': { path: 'src/plugins/fullpage' },

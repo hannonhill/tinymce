@@ -1,0 +1,12 @@
+.mce-object-embeddedblock {
+  display: inline-block;
+  padding: 1px 4px;
+  border: 1px dashed #bbb;
+}
+
+.mce-object-embeddedblock:before {
+  content: 'Embedded Block:';
+  margin-right: 2px;
+  color: #777;
+  text-transform: uppercase;
+}
