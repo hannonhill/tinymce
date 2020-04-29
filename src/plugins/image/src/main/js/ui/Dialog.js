@@ -102,8 +102,8 @@ define(
 
       function showDialog(typeAheadFieldHtml) {
         var win, data = {}, imgElm, figureElm, dom = editor.dom, settings = editor.settings;
-        var width, height, classListCtrl, imageDimensions = settings.image_dimensions !== false;
-        var chooserElm, srcCtrl, classList;
+        var width, height, classListCtrl, customFormatsCtrl, imageDimensions = settings.image_dimensions !== false;
+        var chooserElm, srcCtrl, classList, customFormatsList;
         var isAltTextManuallyUpdated = false;
 
         /**
@@ -498,8 +498,10 @@ define(
           data.decorative = !data.alt.length;
         }
 
-        if (editor.settings.style_formats) {
-          classList = CascadeUtils.getImageClassesForDropdown(editor, Settings.getClassList(editor));
+        if (editor.settings.custom_style_formats) {
+          customFormatsList = CascadeUtils.getImageClassesForDropdown(editor, Settings.getClassList(editor));
+        } else {
+          classList = CascadeUtils.getImageClassesForDropdown(editor);
         }
 
         if (classList) {
@@ -516,6 +518,23 @@ define(
                 if (item.value) {
                   item.textStyle = function () {
                     return editor.formatter.getCssText({ inline: 'img', classes: [item.value] });
+                  };
+                }
+              }
+            )
+          };
+        } else {
+          customFormatsCtrl = {
+            name: 'format',
+            type: 'listbox',
+            label: 'Formats',
+            style: 'max-width:100%', // Make sure the width of the listbox never extends past the width of the dialog.
+            values: Utils.buildListItems(
+              customFormatsList,
+              function (item) {
+                if (item.title) {
+                  item.textStyle = function () {
+                    return editor.formatter.getCssText(item.value);
                   };
                 }
               }
@@ -688,7 +707,11 @@ define(
           });
         }
 
-        generalFormItems.push(classListCtrl);
+        if (classListCtrl) {
+          generalFormItems.push(classListCtrl);
+        } else {
+          generalFormItems.push(customFormatsCtrl);
+        }
 
         if (Settings.hasAdvTab(editor) || editor.settings.images_upload_url) {
           var advTabItems = [];

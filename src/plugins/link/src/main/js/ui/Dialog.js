@@ -118,8 +118,8 @@ define(
 
     var showDialog = function (editor, typeAheadFieldHtml) {
       var data = {}, selection = editor.selection, dom = editor.dom, anchorElm, initialText;
-      var win, onlyText, textListCtrl, relListCtrl, targetListCtrl, classListCtrl, linkTitleCtrl, value;
-      var anchorCtrl, chooserElm, hrefCtrl, sourceTypeCtrl;
+      var win, onlyText, textListCtrl, relListCtrl, targetListCtrl, classListCtrl, customFormatsCtrl, linkTitleCtrl, value;
+      var anchorCtrl, chooserElm, hrefCtrl, sourceTypeCtrl, classList, customFormatsList;
 
       /*
        * Toggles the visibility of the internal and external link controls
@@ -384,20 +384,20 @@ define(
         };
       }
 
-      if (editor.settings.style_formats) {
-        var classList;
+      if (editor.settings.custom_style_formats) {
+        customFormatsList = CascadeUtils.getLinkClassesForDropdown(editor, Settings.getClassList(editor));
+      } else {
+        classList = Settings.getClassList(editor);
+      }
 
-        classList = CascadeUtils.getLinkClassesForDropdown(editor, editor.settings.link_class_list);
-
-        if (classList) {
+      if (classList) {
           // Add a 'None' option to the beginning if it is not already present.
-          if (typeof classList[0] !== 'object') {
-            // Using an object as opposed to a string so we can use an empty value.
-            classList.unshift({
-              text: 'None',
-              value: ''
-            });
-          }
+        if (typeof classList[0] !== 'object') {
+          // Using an object as opposed to a string so we can use an empty value.
+          classList.unshift({
+            text: 'None',
+            value: ''
+          });
         }
 
         // If the link's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
@@ -416,6 +416,23 @@ define(
               if (item.value) {
                 item.textStyle = function () {
                   return editor.formatter.getCssText({ inline: 'a', classes: [item.value] });
+                };
+              }
+            }
+          )
+        };
+      } else {
+        customFormatsCtrl = {
+          name: 'format',
+          type: 'listbox',
+          label: 'Formats',
+          style: 'max-width:100%', // Make sure the width of the listbox never extends past the width of the dialog.
+          values: Utils.buildListItems(
+            customFormatsList,
+            function (item) {
+              if (item.title) {
+                item.textStyle = function () {
+                  return editor.formatter.getCssText(item.value);
                 };
               }
             }
@@ -443,7 +460,7 @@ define(
           linkTitleCtrl,
           relListCtrl,
           targetListCtrl,
-          classListCtrl
+          classListCtrl ? classListCtrl : customFormatsCtrl
         ],
         onSubmit: function (e) {
           var assumeExternalTargets = Settings.assumeExternalTargets(editor.settings);

@@ -14,90 +14,44 @@ define(
       var getLinkClassesForDropdown = function (editor, defaultClassList) {
         return getClassesForDropdown(editor, defaultClassList, "a");
       };
-      var getClassesForDropdown = function (editor, defaultClassList, element) {
+      var getClassesForDropdown = function (editor, element) {
         var editorSettings = editor.settings;
+        var customStyleFormats = editorSettings.custom_style_formats;
+        var customFormatList = [];
         var selectedNode = editor.selection.getNode();
-        var nodeName = selectedNode.nodeName;
+        var creatingNewElement = isCreatingNewElement(element, editor);
 
-        if (nodeName.toLowerCase() !== element) {
-          var elementNode = editor.dom.create(element, {});
-         // editor.selection.setNode(elementNode); //adds node to DOM
-         // selectedNode.append(elementNode); // definitely adds node
-         // var selectedNewNode = editor.selection.select(elementNode); //selecting without inserting/appending causes error
-         // selectedNode = editor.selection.getNode();
-          selectedNode = elementNode; //doesn't seem to work against editor.dom.is for some reason, maybe because it's not an actual node?
+        if (creatingNewElement) {
+          selectedNode = createTemporaryElement(editor, element);
         }
 
-        var classList = [];
-        var formatMenuItems = editorSettings.style_formats;
-        var customMenu = formatMenuItems.filter(function (format) {
-          return format.title === "Custom";
-        });
+        Tools.each(customStyleFormats, function (customFormat) {
+          var formatName = customFormat.name;
+          // matchNode returns the object or undefined if there's no match
+          var selected = editor.formatter.matchNode(selectedNode, formatName, true) ? true : false;
 
-        if (customMenu[0] === null) {
-          return defaultClassList;
-        }
-
-        Tools.each(customMenu[0].items, function (format) {
-          if ((editor.dom.is(selectedNode, format.selector) || matchesSelectorForNewElement(element, editor.selection.getNode(), format.selector, editor)) && format.classes) {
-            Tools.each(format.classes, function (formatClass) {
-              classList.push(formatClass);
-            });
+          if (editor.dom.is(selectedNode, customFormat.selector)) {
+            customFormat.selected = selected;
+            customFormatList.push(customFormat);
           }
         });
 
-        return hasAdvancedFormatMenu(editor) ? classList : defaultClassList;
-      };
-
-      // Attempts to checks the selector up until the element since it hasn't been inserted into the editor yet
-      var matchesSelectorForNewElement = function (element, selectedNode, selector, editor) {
-        var customFormatSelector = trimmedLowerCased(selector);
-        var selectorsInFormat = customFormatSelector.split(","); // account for grouped selectors
-
-        for (var i = 0; i < selectorsInFormat.length; i++) {
-          var selectorSpaceDelimitedArray = selectorsInFormat[i].split(" ");
-
-          if (selectorSpaceDelimitedArray.length > 0) {
-
-            var lastSubstringOfSelector = selectorSpaceDelimitedArray[selectorSpaceDelimitedArray.length - 1];
-
-            // If the last substring does not include the element (img or a), continue to the next rule if the selector contains multiple rules
-            if (lastSubstringOfSelector.indexOf(element) === -1) {
-              continue;
-            }
-
-            if (doesNextCharAllowElementInclusion(lastSubstringOfSelector, element)) {
-              var selectorWithoutElement = selectorsInFormat[i].replace(element, "");
-
-              if (selectorWithoutElement.length === 0) {
-                selectorWithoutElement = "*";
-              }
-
-              var matchesForNewElement = editor.dom.is(selectedNode, selectorWithoutElement);
-              if (matchesForNewElement) {
-                return true;
-              }
-            }
-          }
+        if (creatingNewElement) {
+          editor.dom.remove(selectedNode);
         }
-        return false;
+
+        return customFormatList.sort();
       };
 
-      var trimmedLowerCased = function (stringToConvert) {
-        return stringToConvert.trim().toLowerCase();
+      var isCreatingNewElement = function (element, editor) {
+        var selectedNode = editor.selection.getNode();
+        return selectedNode.nodeName.toLowerCase() !== element;
       };
 
-      // Checks if the element is followed by an "allowable" character :, [, . or #, or nothing. If so, than the element should be considered included in the selector
-      var doesNextCharAllowElementInclusion = function (selectorSubstring, element) {
-        var characterAfterElementRegex = new RegExp("/(?:^" + element + ")(.)/");
-        var characterAfterElement = selectorSubstring.match(characterAfterElementRegex);
-        var ELEMENT_IN_SELECTOR_ALLOWABLE_FOLLOWING_CHARACTERS = ["#", ":", ".", "["];
-
-        return characterAfterElement === null || _.includes(ELEMENT_IN_SELECTOR_ALLOWABLE_FOLLOWING_CHARACTERS, characterAfterElement[0]);
-      };
-
-      var isInElementClassList = function (className, element, editorSettings) {
-        return element === 'img' ? editorSettings.image_class_list.includes(className) : editorSettings.link_class_list.includes(className);
+      var createTemporaryElement = function (editor, element) {
+        var addedElement = editor.dom.create(element, {});
+        editor.selection.getNode().append(addedElement);
+        return addedElement;
       };
 
       var hasAdvancedFormatMenu = function (editor) {
@@ -134,7 +88,7 @@ define(
         getClassesForDropdown: getClassesForDropdown,
         hasAdvancedFormatMenu: hasAdvancedFormatMenu,
         appendOptionsToDropDown: appendOptionsToDropDown,
-        isInElementClassList: isInElementClassList,
+        buildCustomFormatsList: buildCustomFormatsList,
         getImageClassesForDropdown: getImageClassesForDropdown,
         getLinkClassesForDropdown: getLinkClassesForDropdown
       };
