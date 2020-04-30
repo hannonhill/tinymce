@@ -14,9 +14,11 @@ define(
     'global!document',
     'global!RegExp',
     'tinymce.core.util.Tools',
-    'tinymce.plugins.link.api.Settings'
+    'tinymce.plugins.link.api.Settings',
+    'tinymce.plugins.cascade.core.Utils',
+    'tinymce.plugins.cascade.core.CustomStyleFormatsUtils'
   ],
-  function (document, RegExp, Tools, Settings) {
+  function (document, RegExp, Tools, Settings, CascadeUtils, CustomStyleFormatsUtils) {
     var toggleTargetRules = function (rel, isUnsafe) {
       var rules = ['noopener'];
       var newRel = rel ? rel.split(/\s+/) : [];
@@ -81,10 +83,16 @@ define(
     };
 
     var link = function (editor, attachState) {
-      return function (data) {
+      return function (data, selectedCustomFormatNames) {
         editor.undoManager.transact(function () {
           var selectedElm = editor.selection.getNode();
           var anchorElm = getAnchorElement(editor, selectedElm);
+          var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
+
+          if (customStyleFormatsList.length) {
+            var mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
+            data['class'] = mergedClasses.sort().join(' ');
+          }
 
           var linkAttrs = {
             href: data.href,

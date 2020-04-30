@@ -5,92 +5,106 @@
 define(
   'tinymce.plugins.cascade.core.Utils',
   [
-    'tinymce.core.util.Tools'
+    'tinymce.core.util.Tools',
+    'tinymce.plugins.cascade.core.StringUtils'
   ],
-    function (Tools) {
-      var getImageClassesForDropdown = function (editor, defaultClassList) {
-        return getClassesForDropdown(editor, defaultClassList, "img");
-      };
-      var getLinkClassesForDropdown = function (editor, defaultClassList) {
-        return getClassesForDropdown(editor, defaultClassList, "a");
-      };
-      var getClassesForDropdown = function (editor, element) {
-        var editorSettings = editor.settings;
-        var customStyleFormats = editorSettings.custom_style_formats;
-        var customFormatList = [];
-        var selectedNode = editor.selection.getNode();
-        var creatingNewElement = isCreatingNewElement(element, editor);
+  function (Tools, StringUtils) {
+    var isCreatingNewElement = function (element, editor) {
+      var selectedNode = editor.selection.getNode();
+      return selectedNode.nodeName.toLowerCase() !== element;
+    };
 
-        if (creatingNewElement) {
-          selectedNode = createTemporaryElement(editor, element);
-        }
+    var createTemporaryElement = function (editor, element) {
+      var addedElement = editor.dom.create(element, {});
+      editor.selection.getNode().append(addedElement);
+      return addedElement;
+    };
 
-        Tools.each(customStyleFormats, function (customFormat) {
-          var formatName = customFormat.name;
-          // matchNode returns the object or undefined if there's no match
-          var selected = editor.formatter.matchNode(selectedNode, formatName, true) ? true : false;
+    var prepareClassListForListItems = function (classList, data) {
+      if (typeof classList[0] !== 'object') {
+        // Using an object as opposed to a string so we can use an empty value.
+        classList.unshift({
+          text: 'None',
+          value: ''
+        });
+      }
 
-          if (editor.dom.is(selectedNode, customFormat.selector)) {
-            customFormat.selected = selected;
-            customFormatList.push(customFormat);
+      if (data['class'] && classList.indexOf(data['class']) === -1) {
+        classList.push(data['class']);
+      }
+
+      return classList;
+    };
+
+    var buildListItems = function (inputList, itemCallback, startItems) {
+      var appendItems = function (values, output) {
+        var menuItem;
+        output = output || [];
+
+        Tools.each(values, function (item) {
+          if (typeof item === 'string') {
+            item = {
+              text: item,
+              name: item,
+              value: item
+            };
           }
+
+          menuItem = {
+            text: item.text || item.title
+          };
+
+          menuItem.text = StringUtils.truncateListItemText(menuItem.text, 50);
+
+          if (item.menu) {
+            menuItem.menu = appendItems(item.menu);
+          } else {
+            menuItem.value = item.value;
+
+            if (itemCallback) {
+              itemCallback(menuItem);
+            }
+          }
+
+          output.push(menuItem);
         });
 
-        if (creatingNewElement) {
-          editor.dom.remove(selectedNode);
-        }
-
-        return customFormatList.sort();
+        return output;
       };
 
-      var isCreatingNewElement = function (element, editor) {
-        var selectedNode = editor.selection.getNode();
-        return selectedNode.nodeName.toLowerCase() !== element;
-      };
+      return appendItems(inputList, startItems || []);
+    };
 
-      var createTemporaryElement = function (editor, element) {
-        var addedElement = editor.dom.create(element, {});
-        editor.selection.getNode().append(addedElement);
-        return addedElement;
-      };
+    /**
+     * Helper method that converts the provided TinyMCE field into a jQuery object.
+     * If the field passed does not exist, an empty jQuery object will be returned.
+     *
+     * @param {tinymce.ui.Control} tinymceField
+     * @return {jQuery}
+     */
+     /* global $ */
+    var convertTinyMCEFieldToJqueryObject = function (tinymceField) {
+      var element = tinymceField ? tinymceField.getEl() : null;
+      return $(element);
+    };
 
-      var hasAdvancedFormatMenu = function (editor) {
-        var formatMenuItems = editor.settings.style_formats;
+    /**
+     * Helper method that returns the global Cascade variable.
+     *
+     * @return {object}
+     */
+     /* global Cascade */
+    var getGlobalCascadeVariable = function () {
+      return Cascade;
+    };
 
-        if (formatMenuItems === undefined) {
-          return false;
-        }
-
-        var customFormatMenu = formatMenuItems.filter(function (formatMenuItem) {
-          return formatMenuItem.title === "Custom";
-        });
-
-        return customFormatMenu.length > 0;
-      };
-
-      var appendOptionsToDropDown = function (classList, data) {
-        if (typeof classList[0] !== 'object') {
-          // Using an object as opposed to a string so we can use an empty value.
-          classList.unshift({
-            text: 'None',
-            value: ''
-          });
-        }
-
-        if (data['class'] && classList.indexOf(data['class']) === -1) {
-          classList.push(data['class']);
-        }
-
-        return classList;
-      };
-
-      return {
-        getClassesForDropdown: getClassesForDropdown,
-        hasAdvancedFormatMenu: hasAdvancedFormatMenu,
-        appendOptionsToDropDown: appendOptionsToDropDown,
-        buildCustomFormatsList: buildCustomFormatsList,
-        getImageClassesForDropdown: getImageClassesForDropdown,
-        getLinkClassesForDropdown: getLinkClassesForDropdown
-      };
-    }
+    return {
+      isCreatingNewElement: isCreatingNewElement,
+      createTemporaryElement: createTemporaryElement,
+      buildListItems: buildListItems,
+      prepareClassListForListItems: prepareClassListForListItems,
+      convertTinyMCEFieldToJqueryObject: convertTinyMCEFieldToJqueryObject,
+      getGlobalCascadeVariable: getGlobalCascadeVariable
+    };
+  }
 );

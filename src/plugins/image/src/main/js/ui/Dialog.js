@@ -27,9 +27,10 @@ define(
     'tinymce.plugins.image.api.Settings',
     'tinymce.plugins.image.core.Uploader',
     'tinymce.plugins.image.core.Utils',
-    'tinymce.plugins.cascade.core.Utils'
+    'tinymce.plugins.cascade.core.Utils',
+    'tinymce.plugins.cascade.core.CustomStyleFormatsUtils'
   ],
-  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils, CascadeUtils) {
+  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils, CascadeUtils, CustomStyleFormatsUtils) {
     return function (editor) {
       /*
        * Retrieves the HTML markup for the internal file chooser and calls the provided
@@ -43,7 +44,7 @@ define(
        */
       function getTypeAheadFieldHtml(callback) {
         var restrictToFolderId = Settings.getRestrictToFolderId(editor);
-        var cascadeImageChooserUrl = 'CONTEXT_PATH/imagepopup.act?src=<IMG_SRC>&currentSiteId=' + Utils.getGlobalCascadeVariable().Variables.get('currentSiteId');
+        var cascadeImageChooserUrl = 'CONTEXT_PATH/imagepopup.act?src=<IMG_SRC>&currentSiteId=' + CascadeUtils.getGlobalCascadeVariable().Variables.get('currentSiteId');
 
         if (restrictToFolderId) {
           cascadeImageChooserUrl += '&restrictToFolderId=' + restrictToFolderId;
@@ -102,9 +103,11 @@ define(
 
       function showDialog(typeAheadFieldHtml) {
         var win, data = {}, imgElm, figureElm, dom = editor.dom, settings = editor.settings;
-        var width, height, classListCtrl, customFormatsCtrl, imageDimensions = settings.image_dimensions !== false;
-        var chooserElm, srcCtrl, classList, customFormatsList;
+        var width, height, imageDimensions = settings.image_dimensions !== false;
+        var chooserElm, srcCtrl;
         var isAltTextManuallyUpdated = false;
+        var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
+        var classList = Settings.getClassList(editor);
 
         /**
          * Toggles the disabled state of the alt control and description based on the state of the decorative
@@ -344,6 +347,13 @@ define(
             data.alt = '';
           }
 
+          if (customStyleFormatsList.length) {
+            var $customStyleFormatsSelectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
+            var selectedCustomFormatNames = $customStyleFormatsSelectEl.find('select').val();
+            var mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
+            data['class'] = mergedClasses.sort().join(' ');
+          }
+
           // Setup new data excluding style properties
           /*eslint dot-notation: 0*/
           data = {
@@ -496,50 +506,6 @@ define(
           };
 
           data.decorative = !data.alt.length;
-        }
-
-        if (editor.settings.custom_style_formats) {
-          customFormatsList = CascadeUtils.getImageClassesForDropdown(editor, Settings.getClassList(editor));
-        } else {
-          classList = CascadeUtils.getImageClassesForDropdown(editor);
-        }
-
-        if (classList) {
-          classList = CascadeUtils.appendOptionsToDropDown(classList, data);
-
-          classListCtrl = {
-            name: 'class',
-            type: 'listbox',
-            label: 'Class',
-            style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
-            values: Utils.buildListItems(
-              classList,
-              function (item) {
-                if (item.value) {
-                  item.textStyle = function () {
-                    return editor.formatter.getCssText({ inline: 'img', classes: [item.value] });
-                  };
-                }
-              }
-            )
-          };
-        } else {
-          customFormatsCtrl = {
-            name: 'format',
-            type: 'listbox',
-            label: 'Formats',
-            style: 'max-width:100%', // Make sure the width of the listbox never extends past the width of the dialog.
-            values: Utils.buildListItems(
-              customFormatsList,
-              function (item) {
-                if (item.title) {
-                  item.textStyle = function () {
-                    return editor.formatter.getCssText(item.value);
-                  };
-                }
-              }
-            )
-          };
         }
 
         data.source_type = Utils.getSourceType(imgElm, data.src, editor);
@@ -707,10 +673,14 @@ define(
           });
         }
 
-        if (classListCtrl) {
-          generalFormItems.push(classListCtrl);
-        } else {
-          generalFormItems.push(customFormatsCtrl);
+        if (customStyleFormatsList.length || classList.length) {
+          generalFormItems.push({
+            name: 'format',
+            type: 'container',
+            label: 'Formats',
+            style: 'max-width:100%',
+            html: CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, classList)
+          });
         }
 
         if (Settings.hasAdvTab(editor) || editor.settings.images_upload_url) {
@@ -809,7 +779,7 @@ define(
         // Call srcChange on chooser clear and submission.
         chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', onSrcChange);
 
-        Utils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
+        CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
           .on('damembed.cs.chooser.panel.tab', function (e, item) {
             var externalSrcCtrl = win.find('#externalSrc');
             var altCtrl = win.find('#alt');
@@ -822,7 +792,7 @@ define(
             }
           });
 
-        Utils.convertTinyMCEFieldToJqueryObject(win.find('#sourceContainer')[0]).prev('label').addClass('source-control-label');
+        CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#sourceContainer')[0]).prev('label').addClass('source-control-label');
       }
 
       function open() {
