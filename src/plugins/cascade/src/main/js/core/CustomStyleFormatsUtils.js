@@ -26,11 +26,11 @@ define(
 
         Tools.each(customStyleFormats, function (customFormat) {
           var formatName = customFormat.name;
-          // matchNode returns the object or undefined if there's no match
-          var selected = editor.formatter.matchNode(selectedNode, formatName, true) ? true : false;
+          var selected = editor.formatter.matchNode(selectedNode, formatName, false) ? true : false;
 
           if (editor.dom.is(selectedNode, customFormat.selector)) {
             customFormat.selected = selected;
+            customFormat.type = "format";
             customFormatList.push(customFormat);
           }
         });
@@ -42,34 +42,148 @@ define(
         return customFormatList.sort();
       };
 
-      var generateFormatMultiSelectHtml = function (customStyleFormatsList, classList, editor) {
+      var generateClassMultiSelectHtml = function (classList, existingClasses) {
+        var classesForSelect = CascadeUtils.buildListItems(classList);
+        var listHtml = '<select id="customClassesSelect" multiple>';
+
+        Tools.each(classesForSelect, function (item) {
+          item.selected = existingClasses.includes(item.value);
+          item.name = item.value;
+          listHtml += buildSelectionOption(item);
+        });
+        listHtml += '</select>';
+        return listHtml;
+      };
+
+      var generateFormatMultiSelectHtml = function (customStyleFormatsList, existingClasses, element, editor) {
         var formatsForSelect = [];
+        var classList = [];
+        var classesForSelect = [];
+
         if (customStyleFormatsList.length) {
-          formatsForSelect = getApplicableFormatsForElement(editor, 'img');
+          formatsForSelect = getApplicableFormatsForElement(editor, element);
         }
+
+        classList = populateExistingClassList(existingClasses);
 
         if (classList.length) {
-          if (formatsForSelect.length) {
-            formatsForSelect.push({ title: 'Other classes', isoptgroup: true });
+          classesForSelect = getUniqueClassesForSelect(formatsForSelect, classList);
+        }
+
+        return getHtmlForMultiSelect(formatsForSelect, classesForSelect);
+      };
+
+      var getUniqueClassesForSelect = function (formatsForSelect, classList) {
+        var uniqueClassList = [];
+        var classesForSelect = [];
+
+        Tools.each(classList, function (className) {
+          var isUniqueClass = true;
+
+          for (var i = 0; i < formatsForSelect.length; i++) {
+            var format = formatsForSelect[i];
+
+            if (format.classes) {
+              if (format.classes.indexOf(className) >= 0) {
+                isUniqueClass = false;
+                break;
+              }
+            }
           }
 
-          formatsForSelect = formatsForSelect.concat(CascadeUtils.buildListItems(classList));
-        }
-        
-        var listHtml = '<select id="customStyleFormatsSelect" multiple>';
-
-        Tools.each(formatsForSelect, function (item) {
-          var formatLabel = StringUtils.truncateListItemText(item.text || item.title, 50);
-          if (item.isoptgroup) {
-            listHtml += '<optgroup>' + formatLabel + '</optgroup>';
-          } else {
-            listHtml += '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + '>' + formatLabel + '</option>';
+          if (isUniqueClass) {
+            uniqueClassList.push(className);
           }
         });
 
-        listHtml += "</select>";
+        if (uniqueClassList.length) {
+          classesForSelect = CascadeUtils.buildListItems(uniqueClassList);
+        }
+
+        return classesForSelect;
+      };
+
+      var populateExistingClassList = function (existingClasses) {
+        var classList = [];
+
+        if (existingClasses !== undefined) {
+          if (Array.isArray(existingClasses)) {
+            classList = classList.concat(existingClasses);
+          } else if (existingClasses.length) {
+            var existingClassesArray = existingClasses.split(' ');
+            classList = classList.concat(existingClassesArray);
+          }
+        }
+
+        return classList;
+      };
+
+      var getHtmlForMultiSelect = function (formatsForSelect, classesForSelect) {
+        var listHtml = '<select id="customStyleFormatsSelect" multiple>';
+        var addOptGroups = classesForSelect.length && formatsForSelect.length;
+
+        if (addOptGroups) {
+          listHtml += buildOptionGroup("Formats");
+        }
+
+        Tools.each(formatsForSelect, function (item) {
+          listHtml += buildSelectionOption(item);
+        });
+
+        if (addOptGroups) {
+          listHtml += '</optgroup>';
+        }
+
+        if (addOptGroups) {
+          listHtml += buildOptionGroup("Other Classes");
+        }
+
+        Tools.each(classesForSelect, function (item) {
+          item.selected = true;
+          listHtml += buildSelectionOption(item);
+        });
+
+        if (addOptGroups) {
+          listHtml += closeOptionGroup();
+        }
+        listHtml += '</select>';
 
         return listHtml;
+      };
+
+      var buildOptionGroup = function (optionLabel) {
+        return '<optgroup label="' + optionLabel + '">';
+      };
+
+      var closeOptionGroup = function () {
+        return '</optgroup>';
+      };
+
+      var buildSelectionOption = function (item) {
+        var formatLabel = StringUtils.truncateListItemText(item.text || item.title, 50);
+        return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + '>' + formatLabel + '</option>';
+      };
+
+      var mergeExistingClassesWithSimpleFormats = function (existingClasses, selectedClasses, classList) {
+        var newClasses = [];
+
+        if (existingClasses !== undefined) {
+          var existingClassArray = existingClasses.split(' ');
+
+          Tools.each(existingClassArray, function (existingClass) {
+            if (!classList.includes(existingClass)) {
+              newClasses.push(existingClass);
+            }
+          });
+        }
+
+        Tools.each(selectedClasses, function (selectedClass) {
+          if (!newClasses.includes(selectedClass)) {
+            newClasses.push(selectedClass);
+          }
+        });
+
+        return newClasses;
       };
 
       var mergeExistingClassesWithSelectedCustomFormats = function (existingClasses, selectedCustomFormatNames, customStyleFormats) {
@@ -112,11 +226,39 @@ define(
         return uniqueImageClasses;
       };
 
+      var getFormatInlineStyles = function (selectedCustomFormatNames, customStyleFormats) {
+        var newInlineStyles = [];
+        var customFormatsByName = {};
+
+        Tools.each(customStyleFormats, function (customFormat) {
+          customFormatsByName[customFormat.name] = customFormat;
+        });
+
+        // Iterate over selected formats and append their associated styles.
+        Tools.each(selectedCustomFormatNames, function (customFormatName) {
+          if (customFormatsByName[customFormatName] && customFormatsByName[customFormatName].styles) {
+            // Styles are stored as objects, with the CSS property as a key
+            var inlineStylesForFormat = customFormatsByName[customFormatName].styles;
+            Tools.each(Object.keys(inlineStylesForFormat), function (stylePropertyKey) {
+              var inlineStyle = stylePropertyKey + ": " + inlineStylesForFormat[stylePropertyKey];
+              if (!newInlineStyles.includes(inlineStyle)) {
+                newInlineStyles.push(inlineStyle);
+              }
+            });
+          }
+        });
+
+        return newInlineStyles;
+      };
+
       return {
         getCustomStyleFormats: getCustomStyleFormats,
         getApplicableFormatsForElement: getApplicableFormatsForElement,
         generateFormatMultiSelectHtml: generateFormatMultiSelectHtml,
-        mergeExistingClassesWithSelectedCustomFormats: mergeExistingClassesWithSelectedCustomFormats
+        mergeExistingClassesWithSelectedCustomFormats: mergeExistingClassesWithSelectedCustomFormats,
+        mergeExistingClassesWithSimpleFormats: mergeExistingClassesWithSimpleFormats,
+        getFormatInlineStyles: getFormatInlineStyles,
+        generateClassMultiSelectHtml: generateClassMultiSelectHtml
       };
     }
 );

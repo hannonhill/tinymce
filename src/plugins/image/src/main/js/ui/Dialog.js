@@ -347,10 +347,22 @@ define(
             data.alt = '';
           }
 
+          var $selectEl;
+          var mergedClasses;
+
           if (customStyleFormatsList.length) {
-            var $customStyleFormatsSelectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
-            var selectedCustomFormatNames = $customStyleFormatsSelectEl.find('select').val();
-            var mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
+            $selectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
+            var selectedCustomFormatNames = $selectEl.find('select').val();
+            mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
+            data['class'] = mergedClasses.sort().join(' ');
+
+            // IMPROVEMENT: Maintain existing inline styles
+            var mergedStyles = CustomStyleFormatsUtils.getFormatInlineStyles(selectedCustomFormatNames, customStyleFormatsList);
+            data['style'] = mergedStyles.sort().join(';');
+          } else {
+            $selectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#classList')[0]);
+            var selectedClassNames = $selectEl.find('select').val();
+            mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSimpleFormats(data['class'], selectedClassNames, classList);
             data['class'] = mergedClasses.sort().join(' ');
           }
 
@@ -673,13 +685,21 @@ define(
           });
         }
 
-        if (customStyleFormatsList.length || classList.length) {
+        if (customStyleFormatsList.length) {
           generalFormItems.push({
             name: 'format',
             type: 'container',
             label: 'Formats',
             style: 'max-width:100%',
-            html: CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, classList)
+            html: CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'img', editor)
+          });
+        } else {
+          generalFormItems.push({
+            name: 'classList',
+            type: 'container',
+            label: 'Classes',
+            style: 'max-width:100%',
+            html: CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class'])
           });
         }
 

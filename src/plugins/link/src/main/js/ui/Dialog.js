@@ -80,7 +80,7 @@ define(
       var win, onlyText, value;
       var chooserElm, hrefCtrl;
       var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
-      var classList = Settings.getLinkClassList(editor.settings);
+      var classList = Settings.getLinkClassList(editor);
 
       /*
        * Toggles the visibility of the internal and external link controls
@@ -359,32 +359,20 @@ define(
       }
 
       if (customStyleFormatsList.length) {
-        var applicableFormats = CustomStyleFormatsUtils.getApplicableFormatsForElement(editor, 'a');
-
         generalFormItems.push({
           name: 'format',
           type: 'container',
           label: 'Formats',
           style: 'max-width:100%',
-          html: CustomStyleFormatsUtils.generateFormatMultiSelectHtml(applicableFormats)
+          html: CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'a', editor)
         });
-      } else if (classList.length) {
-        classList = CascadeUtils.prepareClassListForListItems(classList, data);
+      } else {
         generalFormItems.push({
-          name: 'class',
-          type: 'listbox',
-          label: 'Class',
-          style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
-          values: CascadeUtils.buildListItems(
-            classList,
-            function (item) {
-              if (item.value) {
-                item.textStyle = function () {
-                  return editor.formatter.getCssText({ inline: 'a', classes: [item.value] });
-                };
-              }
-            }
-          )
+          name: 'classList',
+          type: 'container',
+          label: 'Classes',
+          style: 'max-width:100%',
+          html: CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class'])
         });
       }
 
@@ -439,8 +427,25 @@ define(
             delete resultData.text;
           }
 
-          var $customStyleFormatsSelectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
-          var selectedCustomFormatNames = $customStyleFormatsSelectEl.find('select').val();
+
+          var $selectEl;
+          var mergedClasses;
+
+          if (customStyleFormatsList.length) {
+            $selectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
+            var selectedCustomFormatNames = $selectEl.find('select').val();
+            mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
+            data['class'] = mergedClasses.sort().join(' ');
+
+            // IMPROVEMENT: Maintain existing inline styles
+            var mergedStyles = CustomStyleFormatsUtils.getFormatInlineStyles(selectedCustomFormatNames, customStyleFormatsList);
+            data['style'] = mergedStyles.sort().join(';');
+          } else {
+            $selectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#classList')[0]);
+            var selectedClassNames = $selectEl.find('select').val();
+            mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSimpleFormats(data['class'], selectedClassNames, classList);
+            data['class'] = mergedClasses.sort().join(' ');
+          }
 
           // Is email and not //user@domain.com
           if (href.indexOf('@') > 0 && href.indexOf('//') === -1 && href.indexOf('mailto:') === -1) {
