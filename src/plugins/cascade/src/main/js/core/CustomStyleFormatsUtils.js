@@ -10,6 +10,31 @@ define(
     'tinymce.plugins.cascade.core.StringUtils'
   ],
     function (Tools, CascadeUtils, StringUtils) {
+      var buildOptionGroup = function (optionLabel, optionList) {
+        if (!Tools.isArray(optionList) || !optionList.length) {
+          return '';
+        }
+
+        var result = '<optgroup label="' + optionLabel + '">';
+        result += buildSelectionOptions(optionList);
+        result += '</optgroup>';
+
+        return result;
+      };
+
+      var buildSelectionOptions = function (items) {
+        var result = '';
+        Tools.each(items, function (item) {
+          result += buildSelectionOption(item);
+        });
+        return result;
+      };
+
+      var buildSelectionOption = function (item) {
+        var formatLabel = StringUtils.truncateListItemText(item.text || item.title, 50);
+        return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + '>' + formatLabel + '</option>';
+      };
+
       var getCustomStyleFormats = function (editor) {
         return editor.getParam('custom_style_formats', []);
       };
@@ -44,15 +69,12 @@ define(
 
       var generateClassMultiSelectHtml = function (classList, existingClasses) {
         var classesForSelect = CascadeUtils.buildListItems(classList);
-        var listHtml = '<select id="customClassesSelect" multiple>';
 
         Tools.each(classesForSelect, function (item) {
           item.selected = existingClasses.includes(item.value);
-          item.name = item.value;
-          listHtml += buildSelectionOption(item);
         });
-        listHtml += '</select>';
-        return listHtml;
+
+        return getHtmlForMultiSelect("customClassesSelect", [], classesForSelect);
       };
 
       var generateFormatMultiSelectHtml = function (customStyleFormatsList, existingClasses, element, editor) {
@@ -68,14 +90,18 @@ define(
 
         if (classList.length) {
           classesForSelect = getUniqueClassesForSelect(formatsForSelect, classList);
+
+          // These are existing classes applied to the element, so default them to selected.
+          Tools.each(classesForSelect, function (item) {
+            item.selected = true;
+          });
         }
 
-        return getHtmlForMultiSelect(formatsForSelect, classesForSelect);
+        return getHtmlForMultiSelect("customStyleFormatsSelect", formatsForSelect, classesForSelect);
       };
 
       var getUniqueClassesForSelect = function (formatsForSelect, classList) {
         var uniqueClassList = [];
-        var classesForSelect = [];
 
         Tools.each(classList, function (className) {
           var isUniqueClass = true;
@@ -96,72 +122,41 @@ define(
           }
         });
 
-        if (uniqueClassList.length) {
-          classesForSelect = CascadeUtils.buildListItems(uniqueClassList);
-        }
-
-        return classesForSelect;
+        return CascadeUtils.buildListItems(uniqueClassList);
       };
 
       var populateExistingClassList = function (existingClasses) {
         var classList = [];
 
-        if (existingClasses !== undefined) {
-          if (Array.isArray(existingClasses)) {
-            classList = classList.concat(existingClasses);
-          } else if (existingClasses.length) {
-            var existingClassesArray = existingClasses.split(' ');
-            classList = classList.concat(existingClassesArray);
-          }
+        if (!existingClasses) {
+          return classList;
+        }
+
+        if (Array.isArray(existingClasses)) {
+          classList = classList.concat(existingClasses);
+        } else if (existingClasses.length) {
+          var existingClassesArray = existingClasses.split(' ');
+          classList = classList.concat(existingClassesArray);
         }
 
         return classList;
       };
 
-      var getHtmlForMultiSelect = function (formatsForSelect, classesForSelect) {
-        var listHtml = '<select id="customStyleFormatsSelect" multiple>';
+      var getHtmlForMultiSelect = function (selectFieldId, formatsForSelect, classesForSelect) {
+        var listHtml = '<select id="' + selectFieldId + '" multiple>';
         var addOptGroups = classesForSelect.length && formatsForSelect.length;
 
         if (addOptGroups) {
-          listHtml += buildOptionGroup("Formats");
+          listHtml += buildOptionGroup("Formats", formatsForSelect);
+          listHtml += buildOptionGroup("Other Classes", classesForSelect);
+        } else {
+          listHtml += buildSelectionOptions(formatsForSelect);
+          listHtml += buildSelectionOptions(classesForSelect);
         }
 
-        Tools.each(formatsForSelect, function (item) {
-          listHtml += buildSelectionOption(item);
-        });
-
-        if (addOptGroups) {
-          listHtml += '</optgroup>';
-        }
-
-        if (addOptGroups) {
-          listHtml += buildOptionGroup("Other Classes");
-        }
-
-        Tools.each(classesForSelect, function (item) {
-          item.selected = true;
-          listHtml += buildSelectionOption(item);
-        });
-
-        if (addOptGroups) {
-          listHtml += closeOptionGroup();
-        }
         listHtml += '</select>';
 
         return listHtml;
-      };
-
-      var buildOptionGroup = function (optionLabel) {
-        return '<optgroup label="' + optionLabel + '">';
-      };
-
-      var closeOptionGroup = function () {
-        return '</optgroup>';
-      };
-
-      var buildSelectionOption = function (item) {
-        var formatLabel = StringUtils.truncateListItemText(item.text || item.title, 50);
-        return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + '>' + formatLabel + '</option>';
       };
 
       var mergeExistingClassesWithSimpleFormats = function (existingClasses, selectedClasses, classList) {
@@ -189,6 +184,8 @@ define(
       var mergeExistingClassesWithSelectedCustomFormats = function (existingClasses, selectedCustomFormatNames, customStyleFormats) {
         var customFormatsByName = {};
         var possibleCustomFormatClassNames = {};
+        var newImageClasses = [];
+        var existingClassesArray = Tools.explode(existingClasses, ' ');
 
         // Map style formats by name and build a deduped lookup table of possible class names.
         Tools.each(customStyleFormats, function (customFormat) {
@@ -197,9 +194,6 @@ define(
             possibleCustomFormatClassNames[className] = true;
           });
         });
-
-        var newImageClasses = [];
-        var existingClassesArray = Tools.explode(existingClasses, ' ');
 
         // Remove all classes associated with custom style formats so we're left with ones that were manually added.
         Tools.each(existingClassesArray, function (className) {
