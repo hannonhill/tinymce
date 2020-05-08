@@ -6,10 +6,11 @@ define(
   'tinymce.plugins.cascade.core.CustomStyleFormatsUtils',
   [
     'tinymce.core.util.Tools',
+    'tinymce.core.util.JSON',
     'tinymce.plugins.cascade.core.Utils',
     'tinymce.plugins.cascade.core.StringUtils'
   ],
-    function (Tools, CascadeUtils, StringUtils) {
+    function (Tools, JSON, CascadeUtils, StringUtils) {
       var buildOptionGroup = function (optionLabel, optionList) {
         if (!Tools.isArray(optionList) || !optionList.length) {
           return '';
@@ -32,7 +33,7 @@ define(
 
       var buildSelectionOption = function (item) {
         var formatLabel = StringUtils.truncateListItemText(item.text || item.title, 50);
-        return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + '>' + formatLabel + '</option>';
+        return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + ' data-item=\'' + JSON.serialize(item) + '\'>' + formatLabel + '</option>';
       };
 
       var getCustomStyleFormats = function (editor) {
@@ -74,7 +75,7 @@ define(
           item.selected = existingClasses.includes(item.value);
         });
 
-        return getHtmlForMultiSelect("customClassesSelect", [], classesForSelect);
+        return getHtmlForMultiSelect("formatSelect", [], classesForSelect);
       };
 
       var generateFormatMultiSelectHtml = function (customStyleFormatsList, existingClasses, element, editor) {
@@ -89,7 +90,7 @@ define(
         classList = populateExistingClassList(existingClasses);
 
         if (classList.length) {
-          classesForSelect = getUniqueClassesForSelect(formatsForSelect, classList);
+          classesForSelect = getUniqueNonFormatClassesForSelect(formatsForSelect, classList);
 
           // These are existing classes applied to the element, so default them to selected.
           Tools.each(classesForSelect, function (item) {
@@ -97,27 +98,23 @@ define(
           });
         }
 
-        return getHtmlForMultiSelect("customStyleFormatsSelect", formatsForSelect, classesForSelect);
+        return getHtmlForMultiSelect("formatSelect", formatsForSelect, classesForSelect);
       };
 
-      var getUniqueClassesForSelect = function (formatsForSelect, classList) {
+      var getUniqueNonFormatClassesForSelect = function (formatsForSelect, classList) {
         var uniqueClassList = [];
+        var possibleFormatClassNames = {};
+
+        Tools.each(formatsForSelect, function (format) {
+          if (format.classes) {
+            Tools.each(format.classes, function (className) {
+              possibleFormatClassNames[className] = true;
+            });
+          }
+        });
 
         Tools.each(classList, function (className) {
-          var isUniqueClass = true;
-
-          for (var i = 0; i < formatsForSelect.length; i++) {
-            var format = formatsForSelect[i];
-
-            if (format.classes) {
-              if (format.classes.indexOf(className) >= 0) {
-                isUniqueClass = false;
-                break;
-              }
-            }
-          }
-
-          if (isUniqueClass) {
+          if (!possibleFormatClassNames[className]) {
             uniqueClassList.push(className);
           }
         });
@@ -143,6 +140,10 @@ define(
       };
 
       var getHtmlForMultiSelect = function (selectFieldId, formatsForSelect, classesForSelect) {
+        if (!formatsForSelect.length && !classesForSelect.length) {
+          return '';
+        }
+
         var listHtml = '<select id="' + selectFieldId + '" multiple>';
         var addOptGroups = classesForSelect.length && formatsForSelect.length;
 
@@ -159,80 +160,35 @@ define(
         return listHtml;
       };
 
-      var mergeExistingClassesWithSimpleFormats = function (existingClasses, selectedClasses, classList) {
-        var newClasses = [];
-
-        if (existingClasses !== undefined) {
-          var existingClassArray = existingClasses.split(' ');
-
-          Tools.each(existingClassArray, function (existingClass) {
-            if (!classList.includes(existingClass)) {
-              newClasses.push(existingClass);
-            }
-          });
-        }
-
-        Tools.each(selectedClasses, function (selectedClass) {
-          if (!newClasses.includes(selectedClass)) {
-            newClasses.push(selectedClass);
-          }
-        });
-
-        return newClasses;
-      };
-
-      var mergeExistingClassesWithSelectedCustomFormats = function (existingClasses, selectedCustomFormatNames, customStyleFormats) {
-        var customFormatsByName = {};
-        var possibleCustomFormatClassNames = {};
+      var generateClassNamesFromSelectedFormatOptions = function (selectedOptions) {
         var newImageClasses = [];
-        var existingClassesArray = Tools.explode(existingClasses, ' ');
 
-        // Map style formats by name and build a deduped lookup table of possible class names.
-        Tools.each(customStyleFormats, function (customFormat) {
-          customFormatsByName[customFormat.name] = customFormat;
-          Tools.each(customFormat.classes, function (className) {
-            possibleCustomFormatClassNames[className] = true;
-          });
-        });
-
-        // Remove all classes associated with custom style formats so we're left with ones that were manually added.
-        Tools.each(existingClassesArray, function (className) {
-          if (!possibleCustomFormatClassNames[className]) {
-            newImageClasses.push(className);
+        // Iterate over selected options and append their associated classes.
+        Tools.each(selectedOptions, function (option) {
+          var itemData = JSON.parse(option.getAttribute('data-item'));
+          if (itemData.type === 'class' && !newImageClasses.includes(itemData.name)) {
+            newImageClasses.push(itemData.name);
+          } else if (itemData.type === 'format' && itemData.classes) {
+            Tools.each(itemData.classes, function (className) {
+              if (!newImageClasses.includes(className)) {
+                newImageClasses.push(className);
+              }
+            });
           }
         });
 
-        // Iterate over selected formats and append their associated classes.
-        Tools.each(selectedCustomFormatNames, function (customFormatName) {
-          if (customFormatsByName[customFormatName] && customFormatsByName[customFormatName].classes) {
-            newImageClasses = newImageClasses.concat(customFormatsByName[customFormatName].classes);
-          }
-        });
-
-        // Generate a unique list of classes.
-        var uniqueImageClasses = [];
-        Tools.each(newImageClasses, function (className) {
-          if (!uniqueImageClasses.includes(className)) {
-            uniqueImageClasses.push(className);
-          }
-        });
-
-        return uniqueImageClasses;
+        return newImageClasses;
       };
 
-      var getFormatInlineStyles = function (selectedCustomFormatNames, customStyleFormats) {
+      var getFormatInlineStyles = function (selectedOptions) {
         var newInlineStyles = [];
-        var customFormatsByName = {};
-
-        Tools.each(customStyleFormats, function (customFormat) {
-          customFormatsByName[customFormat.name] = customFormat;
-        });
 
         // Iterate over selected formats and append their associated styles.
-        Tools.each(selectedCustomFormatNames, function (customFormatName) {
-          if (customFormatsByName[customFormatName] && customFormatsByName[customFormatName].styles) {
+        Tools.each(selectedOptions, function (option) {
+          var itemData = JSON.parse(option.getAttribute('data-item'));
+          if (itemData.styles) {
             // Styles are stored as objects, with the CSS property as a key
-            var inlineStylesForFormat = customFormatsByName[customFormatName].styles;
+            var inlineStylesForFormat = itemData.styles;
             Tools.each(Object.keys(inlineStylesForFormat), function (stylePropertyKey) {
               var inlineStyle = stylePropertyKey + ": " + inlineStylesForFormat[stylePropertyKey];
               if (!newInlineStyles.includes(inlineStyle)) {
@@ -249,8 +205,7 @@ define(
         getCustomStyleFormats: getCustomStyleFormats,
         getApplicableFormatsForElement: getApplicableFormatsForElement,
         generateFormatMultiSelectHtml: generateFormatMultiSelectHtml,
-        mergeExistingClassesWithSelectedCustomFormats: mergeExistingClassesWithSelectedCustomFormats,
-        mergeExistingClassesWithSimpleFormats: mergeExistingClassesWithSimpleFormats,
+        generateClassNamesFromSelectedFormatOptions: generateClassNamesFromSelectedFormatOptions,
         getFormatInlineStyles: getFormatInlineStyles,
         generateClassMultiSelectHtml: generateClassMultiSelectHtml
       };

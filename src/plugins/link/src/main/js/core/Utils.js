@@ -83,16 +83,10 @@ define(
     };
 
     var link = function (editor, attachState) {
-      return function (data, selectedCustomFormatNames) {
+      return function (data) {
         editor.undoManager.transact(function () {
           var selectedElm = editor.selection.getNode();
           var anchorElm = getAnchorElement(editor, selectedElm);
-          var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
-
-          if (customStyleFormatsList.length) {
-            var mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
-            data['class'] = mergedClasses.sort().join(' ');
-          }
 
           var linkAttrs = {
             href: data.href,

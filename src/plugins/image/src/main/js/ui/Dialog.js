@@ -347,23 +347,27 @@ define(
             data.alt = '';
           }
 
-          var $selectEl;
-          var mergedClasses;
+          var $formatContainer = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
+          var selectEl = $formatContainer.find('select')[0];
+          var selectedFormatOptions = [];
+          if (selectEl && selectEl.options) {
+            for (var i = 0; i < selectEl.options.length; i++) {
+              var option = selectEl.options[i];
+              if (option.selected) {
+                selectedFormatOptions.push(option);
+              }
+            }
+          }
 
-          if (customStyleFormatsList.length) {
-            $selectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
-            var selectedCustomFormatNames = $selectEl.find('select').val();
-            mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSelectedCustomFormats(data['class'], selectedCustomFormatNames, customStyleFormatsList);
-            data['class'] = mergedClasses.sort().join(' ');
+          var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
+          data['class'] = mergedClasses.sort().join(' ');
 
+          if (selectedFormatOptions.length) {
             // IMPROVEMENT: Maintain existing inline styles
-            var mergedStyles = CustomStyleFormatsUtils.getFormatInlineStyles(selectedCustomFormatNames, customStyleFormatsList);
-            data['style'] = mergedStyles.sort().join(';');
-          } else {
-            $selectEl = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#classList')[0]);
-            var selectedClassNames = $selectEl.find('select').val();
-            mergedClasses = CustomStyleFormatsUtils.mergeExistingClassesWithSimpleFormats(data['class'], selectedClassNames, classList);
-            data['class'] = mergedClasses.sort().join(' ');
+            var mergedStyles = CustomStyleFormatsUtils.getFormatInlineStyles(selectedFormatOptions);
+            if (mergedStyles.length) {
+              data['style'] = mergedStyles.sort().join(';');
+            }
           }
 
           // Setup new data excluding style properties
@@ -685,21 +689,20 @@ define(
           });
         }
 
+        var formatContainerHtml = '';
         if (customStyleFormatsList.length) {
+          formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'img', editor);
+        } else {
+          formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
+        }
+
+        if (formatContainerHtml.length) {
           generalFormItems.push({
             name: 'format',
             type: 'container',
-            label: 'Formats',
+            label: 'Formatting',
             style: 'max-width:100%',
-            html: CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'img', editor)
-          });
-        } else {
-          generalFormItems.push({
-            name: 'classList',
-            type: 'container',
-            label: 'Classes',
-            style: 'max-width:100%',
-            html: CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class'])
+            html: formatContainerHtml
           });
         }
 
