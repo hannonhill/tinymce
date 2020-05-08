@@ -145,15 +145,9 @@ define(
         }
 
         var listHtml = '<select id="' + selectFieldId + '" multiple>';
-        var addOptGroups = classesForSelect.length && formatsForSelect.length;
 
-        if (addOptGroups) {
-          listHtml += buildOptionGroup("Formats", formatsForSelect);
-          listHtml += buildOptionGroup("Other Classes", classesForSelect);
-        } else {
-          listHtml += buildSelectionOptions(formatsForSelect);
-          listHtml += buildSelectionOptions(classesForSelect);
-        }
+        listHtml += buildOptionGroup("Custom Formats", formatsForSelect);
+        listHtml += buildOptionGroup("Classes", classesForSelect);
 
         listHtml += '</select>';
 
