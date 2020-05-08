@@ -11,13 +11,27 @@ define(
     'tinymce.plugins.cascade.core.StringUtils'
   ],
     function (Tools, JSON, CascadeUtils, StringUtils) {
+      var sortFormatsByName = function (formatA, formatB) {
+        var nameA = formatA.name.toUpperCase();
+        var nameB = formatB.name.toUpperCase();
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+
+        // names must be equal
+        return 0;
+      };
+
       var buildOptionGroup = function (optionLabel, optionList) {
         if (!Tools.isArray(optionList) || !optionList.length) {
           return '';
         }
 
         var result = '<optgroup label="' + optionLabel + '">';
-        result += buildSelectionOptions(optionList);
+        result += buildSelectionOptions(optionList.sort(sortFormatsByName));
         result += '</optgroup>';
 
         return result;
@@ -65,7 +79,7 @@ define(
           editor.dom.remove(selectedNode);
         }
 
-        return customFormatList.sort();
+        return customFormatList;
       };
 
       var generateClassMultiSelectHtml = function (classList, existingClasses) {
