@@ -93,6 +93,7 @@ define(
             target: data.target ? data.target : null,
             rel: data.rel ? data.rel : null,
             "class": data["class"] ? data["class"] : null,
+            style: data.style ? data.style : null,
             title: data.title ? data.title : null
           };
 
