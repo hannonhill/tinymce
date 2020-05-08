@@ -47,12 +47,13 @@ define(
               text: item,
               name: item,
               value: item,
-              type: "class"
+              type: 'class'
             };
           }
 
           menuItem = {
             name: item.name,
+            type: item.type || '',
             text: item.text || item.title
           };
 
