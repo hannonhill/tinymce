@@ -83,10 +83,25 @@ define(
       };
 
       var generateClassMultiSelectHtml = function (classList, existingClasses) {
-        var classesForSelect = CascadeUtils.buildListItems(classList);
+        var populatedExistingClassList = populateClassList(existingClasses);
+        var populatedFormatClassList = populateClassList(classList);
+        var possibleClassNameMap = {};
+        var classesForSelect = [];
 
-        Tools.each(classesForSelect, function (item) {
-          item.selected = existingClasses.includes(item.value);
+        // Pre-select unique existing classes
+        Tools.each(populatedExistingClassList, function (item) {
+          if (!possibleClassNameMap[item.name]) {
+            item.selected = true;
+            possibleClassNameMap[item.name] = true;
+            classesForSelect.push(item);
+          }
+        });
+
+        // Add remaining classes available through simple format class list
+        Tools.each(populatedFormatClassList, function (item) {
+          if (!possibleClassNameMap[item.name]) {
+            classesForSelect.push(item);
+          }
         });
 
         return getHtmlForMultiSelect("formatSelect", [], classesForSelect);
@@ -101,7 +116,7 @@ define(
           formatsForSelect = getApplicableFormatsForElement(editor, element);
         }
 
-        classList = populateExistingClassList(existingClasses);
+        classList = populateClassList(existingClasses);
 
         if (classList.length) {
           classesForSelect = getUniqueNonFormatClassesForSelect(formatsForSelect, classList);
@@ -127,30 +142,31 @@ define(
           }
         });
 
-        Tools.each(classList, function (className) {
-          if (!possibleFormatClassNames[className]) {
-            uniqueClassList.push(className);
+        Tools.each(classList, function (item) {
+          if (!possibleFormatClassNames[item.name]) {
+            uniqueClassList.push(item);
           }
         });
 
-        return CascadeUtils.buildListItems(uniqueClassList);
+        return uniqueClassList;
       };
 
-      var populateExistingClassList = function (existingClasses) {
+      var populateClassList = function (existingClasses) {
         var classList = [];
 
-        if (!existingClasses) {
+        if (!existingClasses || !existingClasses.length) {
           return classList;
         }
 
         if (Array.isArray(existingClasses)) {
           classList = classList.concat(existingClasses);
         } else if (existingClasses.length) {
-          var existingClassesArray = existingClasses.split(' ');
-          classList = classList.concat(existingClassesArray);
+          classList = classList.concat(existingClasses.split(' '));
         }
 
-        return classList;
+        return CascadeUtils.buildListItems(classList, function (item) {
+          item.type = 'class';
+        });
       };
 
       var getHtmlForMultiSelect = function (selectFieldId, formatsForSelect, classesForSelect) {

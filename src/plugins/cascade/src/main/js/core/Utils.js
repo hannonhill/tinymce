@@ -46,8 +46,7 @@ define(
             item = {
               text: item,
               name: item,
-              value: item,
-              type: 'class'
+              value: item
             };
           }
 
