@@ -52,6 +52,7 @@ define(
           }
 
           menuItem = {
+            name: item.name,
             text: item.text || item.title
           };
 
