@@ -80,7 +80,7 @@ define(
       var win, onlyText, value;
       var chooserElm, hrefCtrl;
       var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
-      var classList = Settings.getLinkClassList(editor);
+      var classList = Settings.getLinkClassList(editor.settings);
 
       /*
        * Toggles the visibility of the internal and external link controls
