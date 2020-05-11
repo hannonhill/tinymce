@@ -208,6 +208,10 @@ define(
         data.title = value;
       }
 
+      if ((value = dom.getAttrib(anchorElm, 'style'))) {
+        data.style = value;
+      }
+
       var generalFormItems = [];
 
       // Initialize the external link control
@@ -428,23 +432,16 @@ define(
 
           var $formatContainer = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
           var selectEl = $formatContainer.find('select')[0];
-          var selectedFormatOptions = [];
-          if (selectEl && selectEl.options) {
-            for (var i = 0; i < selectEl.options.length; i++) {
-              var option = selectEl.options[i];
-              if (option.selected) {
-                selectedFormatOptions.push(option);
-              }
-            }
+
+          var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
+          var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
+          if (mergedClasses && mergedClasses.length) {
+            resultData['class'] = mergedClasses.sort().join(' ');
           }
 
-          var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
-          resultData['class'] = mergedClasses.sort().join(' ');
-
-          if (selectedFormatOptions.length) {
-            // IMPROVEMENT: Maintain existing inline styles
-            var mergedStyles = CustomStyleFormatsUtils.getFormatInlineStyles(selectedFormatOptions, customStyleFormatsList);
-            resultData['style'] = mergedStyles.sort().join(';');
+          var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
+          if (mergedStyles && mergedStyles.length) {
+            resultData['style'] = mergedStyles;
           }
 
           // Is email and not //user@domain.com

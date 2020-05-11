@@ -349,25 +349,16 @@ define(
 
           var $formatContainer = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
           var selectEl = $formatContainer.find('select')[0];
-          var selectedFormatOptions = [];
-          if (selectEl && selectEl.options) {
-            for (var i = 0; i < selectEl.options.length; i++) {
-              var option = selectEl.options[i];
-              if (option.selected) {
-                selectedFormatOptions.push(option);
-              }
-            }
+
+          var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
+          var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
+          if (mergedClasses && mergedClasses.length) {
+            data['class'] = mergedClasses.sort().join(' ');
           }
 
-          var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
-          data['class'] = mergedClasses.sort().join(' ');
-
-          if (selectedFormatOptions.length) {
-            // IMPROVEMENT: Maintain existing inline styles
-            var mergedStyles = CustomStyleFormatsUtils.getFormatInlineStyles(selectedFormatOptions);
-            if (mergedStyles.length) {
-              data['style'] = mergedStyles.sort().join(';');
-            }
+          var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
+          if (mergedStyles && mergedStyles.length) {
+            data['style'] = mergedStyles;
           }
 
           // Setup new data excluding style properties
@@ -378,9 +369,9 @@ define(
             title: data.title,
             width: data.width,
             height: data.height,
-            style: data.style,
+            style: data.style || '',
             caption: data.caption,
-            "class": data["class"]
+            "class": data["class"] || ''
           };
 
           editor.undoManager.transact(function () {

@@ -50,6 +50,44 @@ define(
         return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + ' data-item=\'' + JSON.serialize(item) + '\'>' + formatLabel + '</option>';
       };
 
+      var getSelectedFormatOptions = function (options) {
+        var result = [];
+        if (!options || !options.length) {
+          return result;
+        }
+
+        for (var i = 0; i < options.length; i++) {
+          if (options[i].selected) {
+            result.push(options[i]);
+          }
+        }
+
+        return result;
+      };
+
+      var getUnselectedFormatOptions = function (options) {
+        var result = [];
+        if (!options || !options.length) {
+          return result;
+        }
+
+        for (var i = 0; i < options.length; i++) {
+          if (!options[i].selected) {
+            result.push(options[i]);
+          }
+        }
+
+        return result;
+      };
+
+      var serlizeFormatStyles = function (formatStyles) {
+        var result = [];
+        Tools.each(Object.keys(formatStyles), function (key) {
+          result.push(key + ': ' + formatStyles[key]);
+        });
+        return result.join('; ');
+      };
+
       var getCustomStyleFormats = function (editor) {
         return editor.getParam('custom_style_formats', []);
       };
@@ -204,25 +242,57 @@ define(
         return newImageClasses;
       };
 
-      var getFormatInlineStyles = function (selectedOptions) {
-        var newInlineStyles = [];
+      var mergeFormatStyles = function (formats) {
+        var mergedStyles = {};
 
-        // Iterate over selected formats and append their associated styles.
-        Tools.each(selectedOptions, function (option) {
+        Tools.each(formats, function (option) {
           var itemData = JSON.parse(option.getAttribute('data-item'));
-          if (itemData.styles) {
-            // Styles are stored as objects, with the CSS property as a key
-            var inlineStylesForFormat = itemData.styles;
-            Tools.each(Object.keys(inlineStylesForFormat), function (stylePropertyKey) {
-              var inlineStyle = stylePropertyKey + ": " + inlineStylesForFormat[stylePropertyKey];
-              if (!newInlineStyles.includes(inlineStyle)) {
-                newInlineStyles.push(inlineStyle);
-              }
+          if (itemData.type === 'format' && itemData.styles) {
+            Tools.each(Object.keys(itemData.styles), function (styleKey) {
+              mergedStyles[styleKey] = itemData.styles[styleKey];
             });
           }
         });
 
-        return newInlineStyles;
+        return mergedStyles;
+      };
+
+      var parseFormatStylesString = function (stylesString) {
+        var stylesObject = {};
+
+        if (!stylesString || !stylesString.length) {
+          return stylesObject;
+        }
+
+        var splitStyles = stylesString.split(';');
+        Tools.each(splitStyles, function (style) {
+          var styleParts = style.split(':');
+          if (styleParts.length === 2) {
+            stylesObject[styleParts[0].trim()] = styleParts[1].trim();
+          }
+        });
+
+        return stylesObject;
+      };
+
+      var mergeSelectedFormatStylesWithExistingStyles = function (options, existingStyles) {
+        var selectedOptions = getSelectedFormatOptions(options);
+        var mergedSelectedStyles = mergeFormatStyles(selectedOptions);
+
+        if (existingStyles && existingStyles.trim().length) {
+          var unselectedOptions = getUnselectedFormatOptions(options);
+          var mergedUnselectedStyles = mergeFormatStyles(unselectedOptions);
+          var parsedExistingStyles = parseFormatStylesString(existingStyles.trim());
+
+          Tools.each(Object.keys(parsedExistingStyles), function (key) {
+            var isUnselectedFormatStyle = mergedUnselectedStyles[key] && parsedExistingStyles[key].toLowerCase() === mergedUnselectedStyles[key].toLowerCase();
+            if (!isUnselectedFormatStyle) {
+              mergedSelectedStyles[key] = parsedExistingStyles[key];
+            }
+          });
+        }
+
+        return serlizeFormatStyles(mergedSelectedStyles);
       };
 
       return {
@@ -230,8 +300,9 @@ define(
         getApplicableFormatsForElement: getApplicableFormatsForElement,
         generateFormatMultiSelectHtml: generateFormatMultiSelectHtml,
         generateClassNamesFromSelectedFormatOptions: generateClassNamesFromSelectedFormatOptions,
-        getFormatInlineStyles: getFormatInlineStyles,
-        generateClassMultiSelectHtml: generateClassMultiSelectHtml
+        generateClassMultiSelectHtml: generateClassMultiSelectHtml,
+        mergeSelectedFormatStylesWithExistingStyles: mergeSelectedFormatStylesWithExistingStyles,
+        getSelectedFormatOptions: getSelectedFormatOptions
       };
     }
 );
