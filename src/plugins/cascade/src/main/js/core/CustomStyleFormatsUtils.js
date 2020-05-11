@@ -199,7 +199,7 @@ define(
         if (Array.isArray(existingClasses)) {
           classList = classList.concat(existingClasses);
         } else if (existingClasses.length) {
-          classList = classList.concat(existingClasses.split(' '));
+          classList = classList.concat(existingClasses.trim().split(' '));
         }
 
         return CascadeUtils.buildListItems(classList, function (item) {
