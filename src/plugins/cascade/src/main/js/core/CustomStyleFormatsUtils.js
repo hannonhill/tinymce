@@ -80,7 +80,7 @@ define(
         return result;
       };
 
-      var serlizeFormatStyles = function (formatStyles) {
+      var serializeFormatStyles = function (formatStyles) {
         var result = [];
         Tools.each(Object.keys(formatStyles), function (key) {
           result.push(key + ': ' + formatStyles[key]);
@@ -294,7 +294,7 @@ define(
           });
         }
 
-        return serlizeFormatStyles(mergedSelectedStyles);
+        return serializeFormatStyles(mergedSelectedStyles);
       };
 
       return {
