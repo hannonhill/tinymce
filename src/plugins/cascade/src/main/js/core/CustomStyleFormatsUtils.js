@@ -286,9 +286,11 @@ define(
 
           Tools.each(Object.keys(parsedExistingStyles), function (key) {
             var isUnselectedFormatStyle = mergedUnselectedStyles[key] && parsedExistingStyles[key].toLowerCase() === mergedUnselectedStyles[key].toLowerCase();
-            if (!isUnselectedFormatStyle) {
-              mergedSelectedStyles[key] = parsedExistingStyles[key];
+            if (isUnselectedFormatStyle || mergedSelectedStyles[key]) {
+              return;
             }
+
+            mergedSelectedStyles[key] = parsedExistingStyles[key];
           });
         }
 
