@@ -107,7 +107,6 @@ define(
         var chooserElm, srcCtrl;
         var isAltTextManuallyUpdated = false;
         var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
-        var classList = Settings.getClassList(editor);
 
         /**
          * Toggles the disabled state of the alt control and description based on the state of the decorative
@@ -684,7 +683,7 @@ define(
         if (customStyleFormatsList.length) {
           formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'img', editor);
         } else {
-          formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
+          formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(Settings.getClassList(editor), data['class']);
         }
 
         if (formatContainerHtml.length) {

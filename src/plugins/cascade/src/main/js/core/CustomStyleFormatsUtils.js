@@ -8,30 +8,18 @@ define(
     'tinymce.core.util.Tools',
     'tinymce.core.util.JSON',
     'tinymce.plugins.cascade.core.Utils',
-    'tinymce.plugins.cascade.core.StringUtils'
+    'tinymce.plugins.cascade.core.StringUtils',
+    'tinymce.plugins.cascade.core.ObjectUtils',
+    'tinymce.plugins.cascade.core.InlineStylesUtils'
   ],
-    function (Tools, JSON, CascadeUtils, StringUtils) {
-      var sortFormatsByName = function (formatA, formatB) {
-        var nameA = formatA.name.toUpperCase();
-        var nameB = formatB.name.toUpperCase();
-        if (nameA < nameB) {
-          return -1;
-        }
-        if (nameA > nameB) {
-          return 1;
-        }
-
-        // names must be equal
-        return 0;
-      };
-
+    function (Tools, JSON, CascadeUtils, StringUtils, ObjectUtils, InlineStylesUtils) {
       var buildOptionGroup = function (optionLabel, optionList) {
         if (!Tools.isArray(optionList) || !optionList.length) {
           return '';
         }
 
         var result = '<optgroup label="' + optionLabel + '">';
-        result += buildSelectionOptions(optionList.sort(sortFormatsByName));
+        result += buildSelectionOptions(ObjectUtils.sortByProperty(optionList, 'name'));
         result += '</optgroup>';
 
         return result;
@@ -46,8 +34,22 @@ define(
       };
 
       var buildSelectionOption = function (item) {
-        var formatLabel = StringUtils.truncateListItemText(item.text || item.title, 50);
+        var formatLabel = StringUtils.truncate(item.text || item.title, 50);
         return '<option value="' + item.name + '"' + (item.selected ? ' selected' : '') + ' data-item=\'' + JSON.serialize(item) + '\'>' + formatLabel + '</option>';
+      };
+
+      var determineClassNamesFromFormat = function (format) {
+        if (format.type === 'class') {
+          return [format.name];
+        } else if (format.type === 'format' && Tools.isArray(format.classes)) {
+          return format.classes;
+        }
+
+        return [];
+      };
+
+      var determineFormatFromOptionElement = function (optionElement) {
+        return JSON.parse(optionElement.getAttribute('data-item'));
       };
 
       var getSelectedFormatOptions = function (options) {
@@ -78,14 +80,6 @@ define(
         }
 
         return result;
-      };
-
-      var serializeFormatStyles = function (formatStyles) {
-        var result = [];
-        Tools.each(Object.keys(formatStyles), function (key) {
-          result.push(key + ': ' + formatStyles[key]);
-        });
-        return result.join('; ');
       };
 
       var getCustomStyleFormats = function (editor) {
@@ -120,55 +114,7 @@ define(
         return customFormatList;
       };
 
-      var generateClassMultiSelectHtml = function (classList, existingClasses) {
-        var populatedExistingClassList = populateClassList(existingClasses);
-        var populatedFormatClassList = populateClassList(classList);
-        var possibleClassNameMap = {};
-        var classesForSelect = [];
-
-        // Pre-select unique existing classes
-        Tools.each(populatedExistingClassList, function (item) {
-          if (!possibleClassNameMap[item.name]) {
-            item.selected = true;
-            possibleClassNameMap[item.name] = true;
-            classesForSelect.push(item);
-          }
-        });
-
-        // Add remaining classes available through simple format class list
-        Tools.each(populatedFormatClassList, function (item) {
-          if (!possibleClassNameMap[item.name]) {
-            classesForSelect.push(item);
-          }
-        });
-
-        return getHtmlForMultiSelect("formatSelect", [], classesForSelect);
-      };
-
-      var generateFormatMultiSelectHtml = function (customStyleFormatsList, existingClasses, element, editor) {
-        var formatsForSelect = [];
-        var classList = [];
-        var classesForSelect = [];
-
-        if (customStyleFormatsList.length) {
-          formatsForSelect = getApplicableFormatsForElement(editor, element);
-        }
-
-        classList = populateClassList(existingClasses);
-
-        if (classList.length) {
-          classesForSelect = getUniqueNonFormatClassesForSelect(formatsForSelect, classList);
-
-          // These are existing classes applied to the element, so default them to selected.
-          Tools.each(classesForSelect, function (item) {
-            item.selected = true;
-          });
-        }
-
-        return getHtmlForMultiSelect("formatSelect", formatsForSelect, classesForSelect);
-      };
-
-      var getUniqueNonFormatClassesForSelect = function (formatsForSelect, classList) {
+      var getUniqueNonFormatClassesForSelect = function (formatsForSelect, classList, itemModifyCallback) {
         var uniqueClassList = [];
         var possibleFormatClassNames = {};
 
@@ -182,6 +128,10 @@ define(
 
         Tools.each(classList, function (item) {
           if (!possibleFormatClassNames[item.name]) {
+            if (itemModifyCallback) {
+              itemModifyCallback(item);
+            }
+
             uniqueClassList.push(item);
           }
         });
@@ -207,12 +157,12 @@ define(
         });
       };
 
-      var getHtmlForMultiSelect = function (selectFieldId, formatsForSelect, classesForSelect) {
+      var getHtmlForMultiSelect = function (formatsForSelect, classesForSelect) {
         if (!formatsForSelect.length && !classesForSelect.length) {
           return '';
         }
 
-        var listHtml = '<select id="' + selectFieldId + '" multiple>';
+        var listHtml = '<select id="formatSelect" multiple>';
 
         listHtml += buildOptionGroup("Custom Formats", formatsForSelect);
         listHtml += buildOptionGroup("Classes", classesForSelect);
@@ -222,34 +172,14 @@ define(
         return listHtml;
       };
 
-      var generateClassNamesFromSelectedFormatOptions = function (selectedOptions) {
-        var newImageClasses = [];
-
-        // Iterate over selected options and append their associated classes.
-        Tools.each(selectedOptions, function (option) {
-          var itemData = JSON.parse(option.getAttribute('data-item'));
-          if (itemData.type === 'class' && !newImageClasses.includes(itemData.name)) {
-            newImageClasses.push(itemData.name);
-          } else if (itemData.type === 'format' && itemData.classes) {
-            Tools.each(itemData.classes, function (className) {
-              if (!newImageClasses.includes(className)) {
-                newImageClasses.push(className);
-              }
-            });
-          }
-        });
-
-        return newImageClasses;
-      };
-
-      var mergeFormatStyles = function (formats) {
+      var mergeInlineStylesFromFormats = function (formats) {
         var mergedStyles = {};
 
         Tools.each(formats, function (option) {
-          var itemData = JSON.parse(option.getAttribute('data-item'));
-          if (itemData.type === 'format' && itemData.styles) {
-            Tools.each(Object.keys(itemData.styles), function (styleKey) {
-              mergedStyles[styleKey] = itemData.styles[styleKey];
+          var format = determineFormatFromOptionElement(option);
+          if (format.type === 'format' && format.styles) {
+            Tools.each(format.styles, function (style, key) {
+              mergedStyles[key] = style;
             });
           }
         });
@@ -257,53 +187,91 @@ define(
         return mergedStyles;
       };
 
-      var parseFormatStylesString = function (stylesString) {
-        var stylesObject = {};
-
-        if (!stylesString || !stylesString.length) {
-          return stylesObject;
-        }
-
-        var splitStyles = stylesString.split(';');
-        Tools.each(splitStyles, function (style) {
-          var styleParts = style.split(':');
-          if (styleParts.length === 2) {
-            stylesObject[styleParts[0].trim()] = styleParts[1].trim();
-          }
-        });
-
-        return stylesObject;
-      };
-
-      var mergeSelectedFormatStylesWithExistingStyles = function (options, existingStyles) {
-        var selectedOptions = getSelectedFormatOptions(options);
-        var mergedSelectedStyles = mergeFormatStyles(selectedOptions);
-
-        if (existingStyles && existingStyles.trim().length) {
-          var unselectedOptions = getUnselectedFormatOptions(options);
-          var mergedUnselectedStyles = mergeFormatStyles(unselectedOptions);
-          var parsedExistingStyles = parseFormatStylesString(existingStyles.trim());
-
-          Tools.each(Object.keys(parsedExistingStyles), function (key) {
-            var isUnselectedFormatStyle = mergedUnselectedStyles[key] && parsedExistingStyles[key].toLowerCase() === mergedUnselectedStyles[key].toLowerCase();
-            if (isUnselectedFormatStyle || mergedSelectedStyles[key]) {
-              return;
-            }
-
-            mergedSelectedStyles[key] = parsedExistingStyles[key];
-          });
-        }
-
-        return serializeFormatStyles(mergedSelectedStyles);
-      };
-
       return {
         getCustomStyleFormats: getCustomStyleFormats,
-        getApplicableFormatsForElement: getApplicableFormatsForElement,
-        generateFormatMultiSelectHtml: generateFormatMultiSelectHtml,
-        generateClassNamesFromSelectedFormatOptions: generateClassNamesFromSelectedFormatOptions,
-        generateClassMultiSelectHtml: generateClassMultiSelectHtml,
-        mergeSelectedFormatStylesWithExistingStyles: mergeSelectedFormatStylesWithExistingStyles,
+        generateFormatMultiSelectHtml: function (customStyleFormatsList, existingClasses, element, editor) {
+          var formatsForSelect = [];
+          var classList = [];
+          var classesForSelect = [];
+
+          if (customStyleFormatsList.length) {
+            formatsForSelect = getApplicableFormatsForElement(editor, element);
+          }
+
+          classList = populateClassList(existingClasses);
+
+          if (classList.length) {
+            classesForSelect = getUniqueNonFormatClassesForSelect(formatsForSelect, classList, function (item) {
+              item.selected = true;
+            });
+          }
+
+          return getHtmlForMultiSelect(formatsForSelect, classesForSelect);
+        },
+
+        generateClassNamesFromSelectedFormatOptions: function (selectedOptions) {
+          var newClasses = [];
+
+          // Iterate over selected options and append their associated classes.
+          Tools.each(selectedOptions, function (option) {
+            var format = determineFormatFromOptionElement(option);
+            var formatClassNames = determineClassNamesFromFormat(format);
+
+            Tools.each(formatClassNames, function (className) {
+              if (!newClasses.includes(className)) {
+                newClasses.push(className);
+              }
+            });
+          });
+
+          return newClasses;
+        },
+
+        generateClassMultiSelectHtml: function (formatClassList, existingClasses) {
+          var populatedExistingClassList = populateClassList(existingClasses);
+          var populatedFormatClassList = populateClassList(formatClassList);
+          var possibleClassNameMap = {};
+          var classesForSelect = [];
+
+          // Pre-select unique existing classes
+          Tools.each(populatedExistingClassList, function (item) {
+            if (!possibleClassNameMap[item.name]) {
+              item.selected = true;
+              possibleClassNameMap[item.name] = true;
+              classesForSelect.push(item);
+            }
+          });
+
+          // Add remaining classes available through simple format class list
+          Tools.each(populatedFormatClassList, function (item) {
+            if (!possibleClassNameMap[item.name]) {
+              classesForSelect.push(item);
+            }
+          });
+
+          return getHtmlForMultiSelect(classesForSelect);
+        },
+        mergeSelectedFormatStylesWithExistingStyles: function (options, existingStyles) {
+          var selectedOptions = getSelectedFormatOptions(options);
+          var mergedSelectedStyles = mergeInlineStylesFromFormats(selectedOptions);
+
+          if (existingStyles && Tools.trim(existingStyles).length) {
+            var unselectedOptions = getUnselectedFormatOptions(options);
+            var mergedUnselectedStyles = mergeInlineStylesFromFormats(unselectedOptions);
+            var parsedExistingStyles = InlineStylesUtils.parse(Tools.trim(existingStyles));
+
+            Tools.each(parsedExistingStyles, function (style, key) {
+              var isUnselectedFormatStyle = StringUtils.isEqual(style, mergedUnselectedStyles[key]);
+              if (isUnselectedFormatStyle || mergedSelectedStyles[key]) {
+                return;
+              }
+
+              mergedSelectedStyles[key] = style;
+            });
+          }
+
+          return InlineStylesUtils.serialize(mergedSelectedStyles);
+        },
         getSelectedFormatOptions: getSelectedFormatOptions
       };
     }

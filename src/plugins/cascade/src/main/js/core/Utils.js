@@ -56,7 +56,7 @@ define(
             text: item.text || item.title
           };
 
-          menuItem.text = StringUtils.truncateListItemText(menuItem.text, 50);
+          menuItem.text = StringUtils.truncate(menuItem.text, 50);
 
           if (item.menu) {
             menuItem.menu = appendItems(item.menu);

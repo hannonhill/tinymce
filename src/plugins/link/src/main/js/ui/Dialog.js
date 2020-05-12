@@ -80,7 +80,6 @@ define(
       var win, onlyText, value;
       var chooserElm, hrefCtrl;
       var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
-      var classList = Settings.getLinkClassList(editor.settings);
 
       /*
        * Toggles the visibility of the internal and external link controls
@@ -366,7 +365,7 @@ define(
       if (customStyleFormatsList.length) {
         formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'a', editor);
       } else {
-        formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
+        formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(Settings.getLinkClassList(editor.settings), data['class']);
       }
 
       if (formatContainerHtml.length) {
