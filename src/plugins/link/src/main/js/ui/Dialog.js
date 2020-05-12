@@ -364,7 +364,7 @@ define(
       var formatContainerHtml = '';
       if (customStyleFormatsList.length) {
         formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'a', editor);
-      } else {
+      } else if (data['class']) {
         formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(Settings.getLinkClassList(editor.settings), data['class']);
       }
 
@@ -430,17 +430,20 @@ define(
           }
 
           var $formatContainer = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
-          var selectEl = $formatContainer.find('select')[0];
 
-          var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
-          var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
-          if (mergedClasses && mergedClasses.length) {
-            resultData['class'] = mergedClasses.sort().join(' ');
-          }
+          if ($formatContainer.length) {
+            var selectEl = $formatContainer.find('select')[0];
 
-          var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
-          if (mergedStyles && mergedStyles.length) {
-            resultData['style'] = mergedStyles;
+            var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
+            var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
+            if (mergedClasses && mergedClasses.length) {
+              resultData['class'] = mergedClasses.sort().join(' ');
+            }
+
+            var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
+            if (mergedStyles && mergedStyles.length) {
+              resultData['style'] = mergedStyles;
+            }
           }
 
           // Is email and not //user@domain.com
