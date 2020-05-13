@@ -272,6 +272,9 @@ define(
 
           return InlineStylesUtils.serialize(mergedSelectedStyles);
         },
+        getFormatHelpText: function () {
+          return '<span class="help-block">Ctrl/Cmd + click to select multiple formats</span>';
+        },
         getSelectedFormatOptions: getSelectedFormatOptions
       };
     }

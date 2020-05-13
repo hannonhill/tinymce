@@ -372,9 +372,9 @@ define(
         generalFormItems.push({
           name: 'format',
           type: 'container',
-          label: 'Formatting',
+          label: 'Formats',
           style: 'max-width:100%',
-          html: formatContainerHtml
+          html: formatContainerHtml + CustomStyleFormatsUtils.getFormatHelpText()
         });
       }
 
