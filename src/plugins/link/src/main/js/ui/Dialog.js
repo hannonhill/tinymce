@@ -362,10 +362,11 @@ define(
       }
 
       var formatContainerHtml = '';
+      var classList = Settings.getLinkClassList(editor.settings);
       if (customStyleFormatsList.length) {
         formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'a', editor);
-      } else if (data['class']) {
-        formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(Settings.getLinkClassList(editor.settings), data['class']);
+      } else if (classList.length) {
+        formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
       }
 
       if (formatContainerHtml.length) {

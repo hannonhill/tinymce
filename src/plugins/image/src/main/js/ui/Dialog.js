@@ -683,10 +683,11 @@ define(
         }
 
         var formatContainerHtml = '';
+        var classList = Settings.getClassList(editor);
         if (customStyleFormatsList.length) {
           formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'img', editor);
-        } else if (data['class']) {
-          formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(Settings.getClassList(editor), data['class']);
+        } else if (classList.length) {
+          formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
         }
 
         if (formatContainerHtml.length) {
