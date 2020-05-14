@@ -13,9 +13,14 @@ define(
     'tinymce.plugins.cascade.core.InlineStylesUtils'
   ],
     function (Tools, JSON, CascadeUtils, StringUtils, ObjectUtils, InlineStylesUtils) {
-      var buildOptionGroup = function (optionLabel, optionList) {
+      var buildOptionGroup = function (optionList) {
         if (!Tools.isArray(optionList) || !optionList.length) {
           return '';
+        }
+        var optionLabel = 'Custom Formats';
+
+        if (optionList[0].type === 'class') {
+          optionLabel = 'CSS Classes';
         }
 
         var result = '<optgroup label="' + optionLabel + '">';
@@ -164,8 +169,8 @@ define(
 
         var listHtml = '<select id="formatSelect" multiple>';
 
-        listHtml += buildOptionGroup("Custom Formats", formatsForSelect);
-        listHtml += buildOptionGroup("Classes", classesForSelect);
+        listHtml += buildOptionGroup(formatsForSelect);
+        listHtml += buildOptionGroup(classesForSelect);
 
         listHtml += '</select>';
 
