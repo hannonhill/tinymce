@@ -26,9 +26,11 @@ define(
     'tinymce.core.util.XHR',
     'tinymce.plugins.image.api.Settings',
     'tinymce.plugins.image.core.Uploader',
-    'tinymce.plugins.image.core.Utils'
+    'tinymce.plugins.image.core.Utils',
+    'tinymce.plugins.cascade.core.Utils',
+    'tinymce.plugins.cascade.core.CustomStyleFormatsUtils'
   ],
-  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils) {
+  function (URL, document, Math, RegExp, Env, Factory, JSON, Tools, XHR, Settings, Uploader, Utils, CascadeUtils, CustomStyleFormatsUtils) {
     return function (editor) {
       /*
        * Retrieves the HTML markup for the internal file chooser and calls the provided
@@ -42,7 +44,7 @@ define(
        */
       function getTypeAheadFieldHtml(callback) {
         var restrictToFolderId = Settings.getRestrictToFolderId(editor);
-        var cascadeImageChooserUrl = 'CONTEXT_PATH/imagepopup.act?src=<IMG_SRC>&currentSiteId=' + Utils.getGlobalCascadeVariable().Variables.get('currentSiteId');
+        var cascadeImageChooserUrl = 'CONTEXT_PATH/imagepopup.act?src=<IMG_SRC>&currentSiteId=' + CascadeUtils.getGlobalCascadeVariable().Variables.get('currentSiteId');
 
         if (restrictToFolderId) {
           cascadeImageChooserUrl += '&restrictToFolderId=' + restrictToFolderId;
@@ -101,9 +103,10 @@ define(
 
       function showDialog(typeAheadFieldHtml) {
         var win, data = {}, imgElm, figureElm, dom = editor.dom, settings = editor.settings;
-        var width, height, classListCtrl, imageDimensions = settings.image_dimensions !== false;
-        var chooserElm, srcCtrl, classList;
+        var width, height, imageDimensions = settings.image_dimensions !== false;
+        var chooserElm, srcCtrl;
         var isAltTextManuallyUpdated = false;
+        var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
 
         /**
          * Toggles the disabled state of the alt control and description based on the state of the decorative
@@ -343,6 +346,23 @@ define(
             data.alt = '';
           }
 
+          var $formatContainer = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
+
+          if ($formatContainer.length) {
+            var selectEl = $formatContainer.find('select')[0];
+
+            var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
+            var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
+            if (mergedClasses && mergedClasses.length) {
+              data['class'] = mergedClasses.sort().join(' ');
+            }
+
+            var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
+            if (mergedStyles && mergedStyles.length) {
+              data['style'] = mergedStyles;
+            }
+          }
+
           // Setup new data excluding style properties
           /*eslint dot-notation: 0*/
           data = {
@@ -351,9 +371,9 @@ define(
             title: data.title,
             width: data.width,
             height: data.height,
-            style: data.style,
+            style: data.style || '',
             caption: data.caption,
-            "class": data["class"]
+            "class": data["class"] || ''
           };
 
           editor.undoManager.transact(function () {
@@ -495,40 +515,6 @@ define(
           };
 
           data.decorative = !data.alt.length;
-        }
-
-        classList = Settings.getClassList(editor);
-        if (classList) {
-          // Add a 'None' option to the beginning if it is not already present.
-          if (typeof classList[0] !== 'object') {
-            // Using an object as opposed to a string so we can use an empty value.
-            classList.unshift({
-              text: 'None',
-              value: ''
-            });
-          }
-
-          // If the images's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
-          if (data['class'] && classList.indexOf(data['class']) === -1) {
-            classList.push(data['class']);
-          }
-
-          classListCtrl = {
-            name: 'class',
-            type: 'listbox',
-            label: 'Class',
-            style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
-            values: Utils.buildListItems(
-              classList,
-              function (item) {
-                if (item.value) {
-                  item.textStyle = function () {
-                    return editor.formatter.getCssText({ inline: 'img', classes: [item.value] });
-                  };
-                }
-              }
-            )
-          };
         }
 
         data.source_type = Utils.getSourceType(imgElm, data.src, editor);
@@ -696,7 +682,23 @@ define(
           });
         }
 
-        generalFormItems.push(classListCtrl);
+        var formatContainerHtml = '';
+        var classList = Settings.getClassList(editor);
+        if (customStyleFormatsList.length) {
+          formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'img', editor);
+        } else if (classList.length) {
+          formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
+        }
+
+        if (formatContainerHtml.length) {
+          generalFormItems.push({
+            name: 'format',
+            type: 'container',
+            label: 'Styling',
+            style: 'max-width:100%',
+            html: formatContainerHtml + CustomStyleFormatsUtils.getFormatHelpText()
+          });
+        }
 
         if (Settings.hasAdvTab(editor) || editor.settings.images_upload_url) {
           var advTabItems = [];
@@ -794,7 +796,7 @@ define(
         // Call srcChange on chooser clear and submission.
         chooserElm.on('clear.cs.chooser submit.cs.chooser.panel', onSrcChange);
 
-        Utils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
+        CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
           .on('damembed.cs.chooser.panel.tab', function (e, item) {
             var externalSrcCtrl = win.find('#externalSrc');
             var altCtrl = win.find('#alt');
@@ -807,7 +809,7 @@ define(
             }
           });
 
-        Utils.convertTinyMCEFieldToJqueryObject(win.find('#sourceContainer')[0]).prev('label').addClass('source-control-label');
+        CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#sourceContainer')[0]).prev('label').addClass('source-control-label');
       }
 
       function open() {

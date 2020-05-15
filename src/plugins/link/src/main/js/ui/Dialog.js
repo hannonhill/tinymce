@@ -16,9 +16,11 @@ define(
     'tinymce.core.util.Tools',
     'tinymce.core.util.XHR',
     'tinymce.plugins.link.api.Settings',
-    'tinymce.plugins.link.core.Utils'
+    'tinymce.plugins.link.core.Utils',
+    'tinymce.plugins.cascade.core.Utils',
+    'tinymce.plugins.cascade.core.CustomStyleFormatsUtils'
   ],
-  function (Strings, Delay, Tools, XHR, Settings, Utils) {
+  function (Strings, Delay, Tools, XHR, Settings, Utils, CascadeUtils, CustomStyleFormatsUtils) {
     var attachState = {};
 
     /**
@@ -61,48 +63,6 @@ define(
       });
     };
 
-    var buildListItems = function (inputList, itemCallback, startItems) {
-      var truncateListItemText = function (str, n) {
-        return str.length > n ? str.substr(0, n - 1) + '...' : str;
-      };
-
-      var appendItems = function (values, output) {
-        var menuItem;
-        output = output || [];
-
-        Tools.each(values, function (item) {
-          if (typeof item === 'string') {
-            item = {
-              text: item,
-              value: item
-            };
-          }
-
-          menuItem = {
-            text: item.text || item.title
-          };
-
-          menuItem.text = truncateListItemText(menuItem.text, 50);
-
-          if (item.menu) {
-            menuItem.menu = appendItems(item.menu);
-          } else {
-            menuItem.value = item.value;
-
-            if (itemCallback) {
-              itemCallback(menuItem);
-            }
-          }
-
-          output.push(menuItem);
-        });
-
-        return output;
-      };
-
-      return appendItems(inputList, startItems || []);
-    };
-
     // Delay confirm since onSubmit will move focus
     var delayedConfirm = function (editor, message, callback) {
       var rng = editor.selection.getRng();
@@ -117,8 +77,9 @@ define(
 
     var showDialog = function (editor, typeAheadFieldHtml) {
       var data = {}, selection = editor.selection, dom = editor.dom, anchorElm, initialText;
-      var win, onlyText, textListCtrl, relListCtrl, targetListCtrl, classListCtrl, linkTitleCtrl, value;
-      var anchorCtrl, chooserElm, hrefCtrl, sourceTypeCtrl;
+      var win, onlyText, value;
+      var chooserElm, hrefCtrl;
+      var customStyleFormatsList = CustomStyleFormatsUtils.getCustomStyleFormats(editor);
 
       /*
        * Toggles the visibility of the internal and external link controls
@@ -246,6 +207,12 @@ define(
         data.title = value;
       }
 
+      if ((value = dom.getAttrib(anchorElm, 'style'))) {
+        data.style = value;
+      }
+
+      var generalFormItems = [];
+
       // Initialize the external link control
       hrefCtrl = {
         name: 'externalLink',
@@ -261,7 +228,7 @@ define(
       if (!Settings.isExternalOnly(editor)) {
         // If the type-ahead HTML generation didn't fail, create the internal/external toggler and separate URL controls.
         if (typeAheadFieldHtml) {
-          sourceTypeCtrl = {
+          generalFormItems.push({
             type: 'container',
             label: 'Link Type',
             layout: 'flex',
@@ -283,7 +250,7 @@ define(
                 text: 'External'
               }
             ]
-          };
+          });
 
           // Set the default visibility of the external URL control.
           hrefCtrl.hidden = data.source_type !== 'external';
@@ -328,19 +295,21 @@ define(
         }
       }
 
+      generalFormItems.push(hrefCtrl);
+
       if (Settings.shouldShowLinkAnchor(editor.settings)) {
-        anchorCtrl = {
+        generalFormItems.push({
           name: 'anchor',
           type: 'textbox',
           label: 'Anchor',
           size: 40,
           onchange: urlChange,
           onkeyup: updateText
-        };
+        });
       }
 
       if (onlyText) {
-        textListCtrl = {
+        generalFormItems.push({
           name: 'text',
           type: 'textbox',
           size: 40,
@@ -348,7 +317,32 @@ define(
           onchange: function () {
             data.text = this.value();
           }
-        };
+        });
+      }
+
+      if (Settings.hasRelList(editor.settings)) {
+        generalFormItems.push({
+          name: 'rel',
+          type: 'listbox',
+          label: 'Rel',
+          values: CascadeUtils.buildListItems(
+            Settings.getRelList(editor.settings),
+            function (item) {
+              if (Settings.allowUnsafeLinkTarget(editor.settings) === false) {
+                item.value = Utils.toggleTargetRules(item.value, data.target === '_blank');
+              }
+            }
+          )
+        });
+      }
+
+      if (Settings.shouldShowLinkTitle(editor.settings)) {
+        generalFormItems.push({
+          name: 'title',
+          type: 'textbox',
+          label: 'Title',
+          value: data.title
+        });
       }
 
       if (Settings.shouldShowTargetList(editor.settings)) {
@@ -359,76 +353,36 @@ define(
           ]);
         }
 
-        targetListCtrl = {
+        generalFormItems.push({
           name: 'target',
           type: 'listbox',
           label: 'Target',
-          values: buildListItems(Settings.getTargetList(editor.settings))
-        };
+          values: CascadeUtils.buildListItems(Settings.getTargetList(editor.settings))
+        });
       }
 
-      if (Settings.hasRelList(editor.settings)) {
-        relListCtrl = {
-          name: 'rel',
-          type: 'listbox',
-          label: 'Rel',
-          values: buildListItems(
-            Settings.getRelList(editor.settings),
-            function (item) {
-              if (Settings.allowUnsafeLinkTarget(editor.settings) === false) {
-                item.value = Utils.toggleTargetRules(item.value, data.target === '_blank');
-              }
-            }
-          )
-        };
+      var formatContainerHtml = '';
+      var classList = Settings.getLinkClassList(editor.settings);
+      if (customStyleFormatsList.length) {
+        formatContainerHtml = CustomStyleFormatsUtils.generateFormatMultiSelectHtml(customStyleFormatsList, data['class'], 'a', editor);
+      } else if (classList.length) {
+        formatContainerHtml = CustomStyleFormatsUtils.generateClassMultiSelectHtml(classList, data['class']);
       }
 
-      if (Settings.hasLinkClassList(editor.settings)) {
-        // If the link's initial class is not empty and not in the pre-defined list, add it so the user can retained the value.
-        if (data['class'] && Settings.getLinkClassList(editor.settings).indexOf(data['class']) === -1) {
-          Settings.getLinkClassList(editor.settings).push(data['class']);
-        }
-
-        classListCtrl = {
-          name: 'class',
-          type: 'listbox',
-          label: 'Class',
-          style: 'max-width:100%;', // Make sure the width of the listbox never extends past the width of the dialog.
-          values: buildListItems(
-            Settings.getLinkClassList(editor.settings),
-            function (item) {
-              if (item.value) {
-                item.textStyle = function () {
-                  return editor.formatter.getCssText({ inline: 'a', classes: [item.value] });
-                };
-              }
-            }
-          )
-        };
-      }
-
-      if (Settings.shouldShowLinkTitle(editor.settings)) {
-        linkTitleCtrl = {
-          name: 'title',
-          type: 'textbox',
-          label: 'Title',
-          value: data.title
-        };
+      if (formatContainerHtml.length) {
+        generalFormItems.push({
+          name: 'format',
+          type: 'container',
+          label: 'Styling',
+          style: 'max-width:100%',
+          html: formatContainerHtml + CustomStyleFormatsUtils.getFormatHelpText()
+        });
       }
 
       win = editor.windowManager.open({
         title: 'Insert link',
         data: data,
-        body: [
-          sourceTypeCtrl,
-          hrefCtrl,
-          anchorCtrl,
-          textListCtrl,
-          linkTitleCtrl,
-          relListCtrl,
-          targetListCtrl,
-          classListCtrl
-        ],
+        body: generalFormItems,
         onSubmit: function (e) {
           var assumeExternalTargets = Settings.assumeExternalTargets(editor.settings);
           var insertLink = Utils.link(editor, attachState);
@@ -474,6 +428,23 @@ define(
 
           if (!onlyText || resultData.text === initialText) {
             delete resultData.text;
+          }
+
+          var $formatContainer = CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#format')[0]);
+
+          if ($formatContainer.length) {
+            var selectEl = $formatContainer.find('select')[0];
+
+            var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
+            var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
+            if (mergedClasses && mergedClasses.length) {
+              resultData['class'] = mergedClasses.sort().join(' ');
+            }
+
+            var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
+            if (mergedStyles && mergedStyles.length) {
+              resultData['style'] = mergedStyles;
+            }
           }
 
           // Is email and not //user@domain.com
@@ -526,13 +497,13 @@ define(
         urlChange.call(Utils.getInternalLinkChooserPathFieldElement(), {});
       });
 
-      Utils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
+      CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#damassetChooserLinkHtml')[0]).find('.damasset-chooser')
         .on('damembed.cs.chooser.panel.tab', function (e, item) {
           win.find('#externalLink').value(item.url);
           win.find('#text').value(item.filename);
         });
 
-      Utils.convertTinyMCEFieldToJqueryObject(win.find('#linkContainer')[0]).prev('label').addClass('source-control-label');
+      CascadeUtils.convertTinyMCEFieldToJqueryObject(win.find('#linkContainer')[0]).prev('label').addClass('source-control-label');
     };
 
     var open = function (editor) {

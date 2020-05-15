@@ -54,15 +54,6 @@ define(
     };
 
     var getLinkClassList = function (editorSettings) {
-      // Add a 'None' option to the beginning if it is not already present.
-      if (typeof editorSettings.link_class_list[0] !== 'object') {
-        // Using an object as opposed to a string so we can use an empty value.
-        editorSettings.link_class_list.unshift({
-          text: 'None',
-          value: ''
-        });
-      }
-
       return editorSettings.link_class_list;
     };
 

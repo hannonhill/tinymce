@@ -14,9 +14,11 @@ define(
     'global!document',
     'global!RegExp',
     'tinymce.core.util.Tools',
-    'tinymce.plugins.link.api.Settings'
+    'tinymce.plugins.link.api.Settings',
+    'tinymce.plugins.cascade.core.Utils',
+    'tinymce.plugins.cascade.core.CustomStyleFormatsUtils'
   ],
-  function (document, RegExp, Tools, Settings) {
+  function (document, RegExp, Tools, Settings, CascadeUtils, CustomStyleFormatsUtils) {
     var toggleTargetRules = function (rel, isUnsafe) {
       var rules = ['noopener'];
       var newRel = rel ? rel.split(/\s+/) : [];
@@ -91,6 +93,7 @@ define(
             target: data.target ? data.target : null,
             rel: data.rel ? data.rel : null,
             "class": data["class"] ? data["class"] : null,
+            style: data.style ? data.style : null,
             title: data.title ? data.title : null
           };
 

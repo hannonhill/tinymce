@@ -16,11 +16,10 @@ define(
   'tinymce.plugins.image.core.Utils',
   [
     'tinymce.plugins.image.api.Settings',
-    'tinymce.core.util.Tools',
     'global!Math',
     'global!document'
   ],
-  function (Settings, Tools, Math, document) {
+  function (Settings, Math, document) {
 
     var getImageSize = function (url, callback) {
       var img = document.createElement('img');
@@ -49,49 +48,6 @@ define(
 
       document.body.appendChild(img);
       img.src = url;
-    };
-
-
-    var buildListItems = function (inputList, itemCallback, startItems) {
-      var truncateListItemText = function (str, n) {
-        return str.length > n ? str.substr(0, n - 1) + '...' : str;
-      };
-
-      var appendItems = function (values, output) {
-        var menuItem;
-        output = output || [];
-
-        Tools.each(values, function (item) {
-          if (typeof item === 'string') {
-            item = {
-              text: item,
-              value: item
-            };
-          }
-
-          menuItem = {
-            text: item.text || item.title
-          };
-
-          menuItem.text = truncateListItemText(menuItem.text, 50);
-
-          if (item.menu) {
-            menuItem.menu = appendItems(item.menu);
-          } else {
-            menuItem.value = item.value;
-
-            if (itemCallback) {
-              itemCallback(menuItem);
-            }
-          }
-
-          output.push(menuItem);
-        });
-
-        return output;
-      };
-
-      return appendItems(inputList, startItems || []);
     };
 
     var removePixelSuffix = function (value) {
@@ -177,16 +133,6 @@ define(
     };
 
     /**
-     * Helper method that returns the global Cascade variable.
-     *
-     * @return {object}
-     */
-     /* global Cascade */
-    var getGlobalCascadeVariable = function () {
-      return Cascade;
-    };
-
-    /**
      * Helper method that returns the chooser field itself.
      *
      * @return {jQuery}
@@ -230,19 +176,6 @@ define(
      */
     var isInternalUrl = function (url) {
       return url.match(/^(?:site:\/\/|\/)\w/) !== null;
-    };
-
-    /**
-     * Helper method that converts the provided TinyMCE field into a jQuery object.
-     * If the field passed does not exist, an empty jQuery object will be returned.
-     *
-     * @param {tinymce.ui.Control} tinymceField
-     * @return {jQuery}
-     */
-     /* global $ */
-    var convertTinyMCEFieldToJqueryObject = function (tinymceField) {
-      var element = tinymceField ? tinymceField.getEl() : null;
-      return $(element);
     };
 
     /**
@@ -291,19 +224,16 @@ define(
 
     return {
       getImageSize: getImageSize,
-      buildListItems: buildListItems,
       removePixelSuffix: removePixelSuffix,
       addPixelSuffix: addPixelSuffix,
       mergeMargins: mergeMargins,
       getAssetChooser: getAssetChooser,
       getChosenFromAssetChooser: getChosenFromAssetChooser,
       setAssetChooser: setAssetChooser,
-      getGlobalCascadeVariable: getGlobalCascadeVariable,
       getInternalLinkChooser: getInternalLinkChooser,
       getInternalLinkChooserPathFieldElement: getInternalLinkChooserPathFieldElement,
       internalPathToRenderFileURL: internalPathToRenderFileURL,
       isInternalUrl: isInternalUrl,
-      convertTinyMCEFieldToJqueryObject: convertTinyMCEFieldToJqueryObject,
       generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
       getSourceType: getSourceType
     };
