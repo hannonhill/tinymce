@@ -373,7 +373,7 @@ define(
         generalFormItems.push({
           name: 'format',
           type: 'container',
-          label: 'Formats',
+          label: 'Styling',
           style: 'max-width:100%',
           html: formatContainerHtml + CustomStyleFormatsUtils.getFormatHelpText()
         });
