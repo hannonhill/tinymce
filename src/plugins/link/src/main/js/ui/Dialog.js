@@ -437,14 +437,10 @@ define(
 
             var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
             var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
-            if (mergedClasses && mergedClasses.length) {
-              resultData['class'] = mergedClasses.sort().join(' ');
-            }
+            resultData['class'] = mergedClasses && mergedClasses.length ? mergedClasses.sort().join(' ') : null;
 
             var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
-            if (mergedStyles && mergedStyles.length) {
-              resultData['style'] = mergedStyles;
-            }
+            resultData['style'] = mergedStyles && mergedStyles.length ? mergedStyles : null;
           }
 
           // Is email and not //user@domain.com

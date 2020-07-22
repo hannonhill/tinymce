@@ -353,14 +353,10 @@ define(
 
             var selectedFormatOptions = CustomStyleFormatsUtils.getSelectedFormatOptions(selectEl.options);
             var mergedClasses = CustomStyleFormatsUtils.generateClassNamesFromSelectedFormatOptions(selectedFormatOptions);
-            if (mergedClasses && mergedClasses.length) {
-              data['class'] = mergedClasses.sort().join(' ');
-            }
+            data['class'] = mergedClasses && mergedClasses.length ? mergedClasses.sort().join(' ') : null;
 
             var mergedStyles = CustomStyleFormatsUtils.mergeSelectedFormatStylesWithExistingStyles(selectEl.options, data['style']);
-            if (mergedStyles && mergedStyles.length) {
-              data['style'] = mergedStyles;
-            }
+            data['style'] = mergedStyles && mergedStyles.length ? mergedStyles : null;
           }
 
           // Setup new data excluding style properties
