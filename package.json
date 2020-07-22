@@ -18,21 +18,21 @@
     "test": "grunt bedrock-manual"
   },
   "dependencies": {
-    "@ephox/katamari": "^1.1.0",
+    "@ephox/katamari": "^1.1.7",
     "@ephox/sand": "^1.1.1",
-    "@ephox/sugar": "^3.1.0"
+    "@ephox/sugar": "^3.3.0"
   },
   "devDependencies": {
-    "@ephox/bedrock": "^1.5.0",
-    "@ephox/bolt": "^1.6.0",
+    "@ephox/bedrock": "^1.8.0",
+    "@ephox/bolt": "^1.9.0",
     "@ephox/imagetools": "2.0.0",
-    "@ephox/mcagar": "^1.1.1",
-    "grunt": "~1.0.1",
+    "@ephox/mcagar": "^1.2.2",
+    "grunt": "^1.0.4",
     "grunt-contrib-clean": "~1.0.0",
     "grunt-contrib-copy": "~1.0.0",
     "grunt-contrib-less": "~1.4.0",
     "grunt-contrib-uglify": "~2.0.0",
-    "grunt-contrib-watch": "~1.0.0",
+    "grunt-contrib-watch": "^1.0.1",
     "grunt-eslint": "~19.0.0",
     "grunt-nuget-pack": "^0.0.6",
     "jquery": "~1.11.3",
