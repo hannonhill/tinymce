@@ -62,6 +62,9 @@ define(
 
         src = imgElm ? dom.getAttrib(imgElm, 'src') : '';
 
+        // Workaround to remove instance origin if it's been added, i.e. image has been repositioned
+        src = Utils.removeOriginFromSrc(src);
+
         // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
         if (!Utils.isInternalUrl(src)) {
           src = '';
