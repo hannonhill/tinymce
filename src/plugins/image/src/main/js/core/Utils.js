@@ -17,10 +17,9 @@ define(
   [
     'tinymce.plugins.image.api.Settings',
     'global!Math',
-    'global!document',
-    'global!window'
+    'global!document'
   ],
-  function (Settings, Math, document, window) {
+  function (Settings, Math, document) {
 
     var getImageSize = function (url, callback) {
       var img = document.createElement('img');
@@ -180,19 +179,6 @@ define(
     };
 
     /**
-     * Helper method that removes the instance URL from a given source, in case it was added by the browser, i.e. when an internal image is repositioned
-     */
-    var removeOriginFromSrc = function (src) {
-      if (!window.location.origin) {
-        window.location.origin = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port : '');
-      }
-
-      var origin = window.location.origin;
-
-      return src.replace(origin, "");
-    };
-
-    /**
      * Helper method that generates a string containing the enabled DAM integrations
      * based on the given editor's settings. If there are more than one enabled, they
      * will be joined with ' or '.
@@ -249,8 +235,7 @@ define(
       internalPathToRenderFileURL: internalPathToRenderFileURL,
       isInternalUrl: isInternalUrl,
       generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
-      getSourceType: getSourceType,
-      removeOriginFromSrc: removeOriginFromSrc
+      getSourceType: getSourceType
     };
   }
 );
