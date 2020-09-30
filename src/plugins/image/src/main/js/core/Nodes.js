@@ -44,9 +44,7 @@ define(
 
         var origin = window.location.origin;
 
-        if (src.startsWith(origin)) {
-          return src.replace(origin, "");
-        }
+        return src.replace(origin, "");
       };
 
       var getInstanceHost = function () {
