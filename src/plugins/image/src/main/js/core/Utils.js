@@ -142,6 +142,30 @@ define(
       return $(document.getElementById('chooser-imageId'));
     };
 
+    var fixBadInternalSrc = function (editor) {
+      return function (nodes, name) {
+
+        for (var i = 0; i < nodes.length; i++) {
+          var node = nodes[i];
+          var imgSrc = node.attr('src');
+          var updatedSrc = getInternalImageSrc(editor, imgSrc);
+
+          node.attr('src', updatedSrc);
+        }
+      };
+
+    };
+
+    var getInternalImageSrc = function (editor, src) {
+      var instanceHost = editor.baseURI.protocol + "://" + editor.baseURI.authority;
+
+      if (!src.startsWith(instanceHost)) {
+        return src;
+      }
+
+      return src.replace(instanceHost, "");
+    };
+
 
     /**
      * Helper method that returns the hidden input containing the internally
@@ -235,7 +259,9 @@ define(
       internalPathToRenderFileURL: internalPathToRenderFileURL,
       isInternalUrl: isInternalUrl,
       generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
-      getSourceType: getSourceType
+      getSourceType: getSourceType,
+      fixBadInternalSrc: fixBadInternalSrc,
+      getInternalImageSrc: getInternalImageSrc
     };
   }
 );

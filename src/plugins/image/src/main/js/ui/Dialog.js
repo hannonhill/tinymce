@@ -61,11 +61,15 @@ define(
         }
 
         src = imgElm ? dom.getAttrib(imgElm, 'src') : '';
+        src = Utils.getInternalImageSrc(editor, src);
 
         // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
         if (!Utils.isInternalUrl(src)) {
           src = '';
         }
+
+        // Workaround to ensure any bad internal src is updated
+        dom.setAttrib(imgElm, 'src', src);
 
         XHR.send({
           url: cascadeImageChooserUrl.replace('<IMG_SRC>', encodeURIComponent(src)),
