@@ -63,7 +63,8 @@ define(
         editor.parser.addNodeFilter('figure', toggleContentEditableState(true));
         editor.serializer.addNodeFilter('figure', toggleContentEditableState(false));
         editor.serializer.addAttributeFilter('caption', removeCaptionFromImages);
-        editor.serializer.addNodeFilter('img', Utils.fixBadInternalSrc(editor));
+        editor.serializer.addNodeFilter('img', Utils.updateNodesInternalSrc(editor));
+        editor.parser.addNodeFilter('img', Utils.updateNodesInternalSrc(editor));
       });
     };
 
