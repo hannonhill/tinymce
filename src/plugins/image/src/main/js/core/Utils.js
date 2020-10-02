@@ -142,21 +142,33 @@ define(
       return $(document.getElementById('chooser-imageId'));
     };
 
-    var fixBadInternalSrc = function (editor) {
+    /**
+     * Updates any nodes with src beginning with the instance host
+     *
+     * @param {*} editor
+     */
+    var updateNodesInternalSrc = function (editor) {
       return function (nodes, name) {
 
         for (var i = 0; i < nodes.length; i++) {
           var node = nodes[i];
           var imgSrc = node.attr('src');
-          var updatedSrc = getInternalImageSrc(editor, imgSrc);
 
+
+          var updatedSrc = removeInstanceHostFromSrc(editor, imgSrc);
           node.attr('src', updatedSrc);
         }
       };
-
     };
 
-    var getInternalImageSrc = function (editor, src) {
+    /**
+     * Helper method that removes the first instance of the instance host/authority
+     * from a src, if src begins with the instance host/authority
+     * @param {tinymce.Editor} editor
+     * @param src
+     * @return {string} the original or corrected src, if necessary
+     */
+    var removeInstanceHostFromSrc = function (editor, src) {
       var instanceHost = editor.baseURI.protocol + "://" + editor.baseURI.authority;
 
       if (!src.startsWith(instanceHost)) {
@@ -260,8 +272,8 @@ define(
       isInternalUrl: isInternalUrl,
       generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
       getSourceType: getSourceType,
-      fixBadInternalSrc: fixBadInternalSrc,
-      getInternalImageSrc: getInternalImageSrc
+      updateNodesInternalSrc: updateNodesInternalSrc,
+      removeInstanceHostFromSrc: removeInstanceHostFromSrc
     };
   }
 );
