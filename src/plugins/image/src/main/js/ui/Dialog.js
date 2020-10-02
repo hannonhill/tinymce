@@ -65,6 +65,9 @@ define(
         // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
         if (!Utils.isInternalUrl(src)) {
           src = '';
+        } else {
+          // Workaround to ensure any url beginning with the instance url is updated
+          dom.setAttrib(imgElm, 'src', src);
         }
 
         XHR.send({

@@ -154,6 +154,9 @@ define(
           var node = nodes[i];
           var imgSrc = node.attr('src');
 
+          if (imgSrc === undefined) {
+            continue;
+          }
 
           var updatedSrc = removeInstanceHostFromSrc(editor, imgSrc);
           node.attr('src', updatedSrc);
