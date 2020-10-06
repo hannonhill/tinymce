@@ -11,9 +11,10 @@
 define(
   'tinymce.plugins.image.core.FilterContent',
   [
-    'tinymce.core.util.Tools'
+    'tinymce.core.util.Tools',
+    'tinymce.plugins.image.core.Utils'
   ],
-  function (Tools) {
+  function (Tools, Utils) {
     var hasImageClass = function (node) {
       var className = node.attr('class');
       return className && /\bimage\b/.test(className);
@@ -62,6 +63,8 @@ define(
         editor.parser.addNodeFilter('figure', toggleContentEditableState(true));
         editor.serializer.addNodeFilter('figure', toggleContentEditableState(false));
         editor.serializer.addAttributeFilter('caption', removeCaptionFromImages);
+        editor.serializer.addNodeFilter('img', Utils.updateNodesInternalSrc(editor));
+        editor.parser.addNodeFilter('img', Utils.updateNodesInternalSrc(editor));
       });
     };
 

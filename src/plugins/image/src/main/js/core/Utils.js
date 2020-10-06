@@ -142,6 +142,45 @@ define(
       return $(document.getElementById('chooser-imageId'));
     };
 
+    /**
+     * Updates any nodes with src beginning with the instance host
+     *
+     * @param {*} editor
+     */
+    var updateNodesInternalSrc = function (editor) {
+      return function (nodes, name) {
+
+        for (var i = 0; i < nodes.length; i++) {
+          var node = nodes[i];
+          var imgSrc = node.attr('src');
+
+          if (imgSrc === undefined) {
+            continue;
+          }
+
+          var updatedSrc = removeInstanceHostFromSrc(editor, imgSrc);
+          node.attr('src', updatedSrc);
+        }
+      };
+    };
+
+    /**
+     * Helper method that removes the first instance of the instance host/authority
+     * from a src, if src begins with the instance host/authority
+     * @param {tinymce.Editor} editor
+     * @param src
+     * @return {string} the original or corrected src, if necessary
+     */
+    var removeInstanceHostFromSrc = function (editor, src) {
+      var instanceHost = editor.baseURI.protocol + "://" + editor.baseURI.authority;
+
+      if (!src.startsWith(instanceHost)) {
+        return src;
+      }
+
+      return src.replace(instanceHost, "");
+    };
+
 
     /**
      * Helper method that returns the hidden input containing the internally
@@ -235,7 +274,9 @@ define(
       internalPathToRenderFileURL: internalPathToRenderFileURL,
       isInternalUrl: isInternalUrl,
       generateEnabledDAMIntegrationsLabelFromEditorSettings: generateEnabledDAMIntegrationsLabelFromEditorSettings,
-      getSourceType: getSourceType
+      getSourceType: getSourceType,
+      updateNodesInternalSrc: updateNodesInternalSrc,
+      removeInstanceHostFromSrc: removeInstanceHostFromSrc
     };
   }
 );

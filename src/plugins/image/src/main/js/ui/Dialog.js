@@ -60,11 +60,14 @@ define(
           imgElm = dom.select('img', figureElm)[0];
         }
 
-        src = imgElm ? dom.getAttrib(imgElm, 'src') : '';
+        src = imgElm ? Utils.removeInstanceHostFromSrc(editor, dom.getAttrib(imgElm, 'src')) : '';
 
         // Leave the chooser empty if the URL is external (ie doesn't start with site:// or /).
         if (!Utils.isInternalUrl(src)) {
           src = '';
+        } else {
+          // Workaround to ensure any url beginning with the instance url is updated
+          dom.setAttrib(imgElm, 'src', src);
         }
 
         XHR.send({
