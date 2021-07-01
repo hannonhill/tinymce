@@ -201,7 +201,7 @@ define(
      * @return {string}
      */
     var internalPathToRenderFileURL = function (path) {
-      return path ? 'CONTEXT_PATH/render/file.act?path=' + encodeURIComponent(path) : '';
+      return path ? 'CONTEXT_PATH/render/file.act?path=' + encodeURI(path) : '';
     };
 
     /**
